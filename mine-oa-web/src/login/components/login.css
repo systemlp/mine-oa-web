@@ -1,0 +1,54 @@
+.login-container {
+    width: 100%;
+    min-width: 960px;
+    height: 460px;
+    background: #000;
+    position: absolute;
+    top: 50%;
+    margin-top: -230px;
+}
+
+.login-container>* {
+    float: left;
+}
+
+.image3 {
+    transform: translate(0px, 0px);
+    opacity: 1;
+    background: url("https://t.alipayobjects.com/images/T1nx0kXdFfXXXXXXXX.png") no-repeat 100%/460px;
+    background-origin: content-box;
+    min-width: 480px;
+    height: 100%;
+    position: absolute;
+    left: 180px;
+}
+
+.login-form {
+    width: 360px;
+    height: 360px;
+    position: absolute;
+    top: 50px;
+    right: 100px;
+    padding: 35px 20px;
+    background: #fff;
+}
+
+.login-form-button {
+    width: 100%;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.login-container .ant-row>div:not(.gutter-row):nth-child(odd), .ant-row-flex>div:not(.gutter-row):nth-child(odd) {
+    background: none;
+}
+
+.ant-row>div, .ant-row-flex>div {
+    text-align: left;
+    font-size: 12px;
+}
+
+.ant-form-item {
+    margin-bottom: 0;
+}
