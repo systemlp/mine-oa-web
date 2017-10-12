@@ -27,6 +27,34 @@
     }
 }
 
+.txt-left {
+    text-align: left !important;
+}
+
+.txt-center {
+    text-align: center !important;
+}
+
+.txt-right {
+    text-align: right !important;
+}
+
+.marginT-10 {
+    margin-top: 10px;
+}
+
+.marginR-10 {
+    margin-right: 10px;
+}
+
+.marginB-10 {
+    margin-bottom: 10px;
+}
+
+.marginL-10 {
+    margin-left: 10px;
+}
+
 .app-header {
     color: white;
     position: relative;
@@ -46,5 +74,58 @@
 
 .app-welcome {
     font-size: 20px;
+    font-weight: bold;
+}
+
+.app-header .user {
+    float: right;
+    position: relative;
+    height: 80px;
+}
+
+.app-header .ant-dropdown-link {
+    display: inline-block;
+    height: 80px;
+    width: 120px;
+}
+
+.app-header .ant-dropdown-link:hover {
+    background-color: #000;
+}
+
+.app-header .userImg {
+    position: relative;
+    top: 15px;
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    left: 20px;
+}
+
+.app-header .anticon-caret-down {
+    position: absolute;
+    top: 50%;
+    margin-top: -5px;
+    left: 84px;
+    color: #ccc;
+}
+
+.user-menu {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.user-menu .ant-dropdown-menu-item {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 400;
+    color: #262626;
+}
+
+.user-menu .anticon {
+    color: #ea6f5a;
+    margin-right: 18px;
+    font-size: 18px;
     font-weight: bold;
 }

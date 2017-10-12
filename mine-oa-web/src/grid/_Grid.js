@@ -13,7 +13,7 @@ const DemoBox = ((props) => {
 export default class _Grid extends Component {
     render() {
         return (
-            <div>
+            <div className="grid_container">
                 <h1>24 栅格系统</h1>
                 <dl>
                     <dt>

@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {connect} from 'react-redux';
+import {fetchUtil} from '../../utils/fetchUtil'
 // import { bindActionCreators } from 'redux';
 import {
     Row,
@@ -46,32 +47,37 @@ class Login extends Component {
         } else if (!password) {
             this.setState({errMsg: errMsg.passwordEmpty});
         } else {
-            fetch('http://localhost:8080/user/login', {
+            fetchUtil({
+                url: '/user/login',
                 method: 'post',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/json;charset=UTF-8'
+                body: {
+                    userName,
+                    password
                 },
-                body: JSON.stringify({userName, password})
-            }).then(res => {
-                res.json().then(data => {
-                    if (data.code === 200) {
+                callBack: (result) => {
+                    if (result.code === 200) {
+                        const {token} = result.data;
+                        sessionStorage.setItem('token', token);
                         onLogin({userName, password});
-                        browserHistory.push('/');
+                        fetchUtil({
+                            url: '/user/getUserByToken',
+                            callBack: (result) => {
+                                if (result.code === 200) {
+                                    sessionStorage.setItem('user', JSON.stringify(result.data));
+                                    browserHistory.push('/');
+                                }
+                            }
+                        });
                     } else {
-                        this.setState({errMsg: {
-                            title: 'error',
-                            msg: data.msg
-                        }});
+                        this.setState({
+                            errMsg: {
+                                title: 'error',
+                                msg: result.msg
+                            }
+                        });
                     }
-                });
+                }
             });
-            // if (userName === 'admin' && password === '123456') {
-            //     onLogin({userName, password});
-            //     browserHistory.push('/');
-            // } else {
-            //     this.setState({errMsg: errMsg.error});
-            // }
         }
     }
     render() {
@@ -90,7 +96,7 @@ class Login extends Component {
                                 if (value && this.state.errMsg != null && (this.state.errMsg.title === 'nameEmpty' || this.state.errMsg.title === 'error')) {
                                     this.setState({errMsg: null});
                                 }
-                            }} prefix={<Icon type = "user" style = {{fontSize: 16}}/>} placeholder="用户名"/>
+                            }} prefix={< Icon type = "user" style = {{fontSize: 16}}/>} placeholder="用户名"/>
                         </Col>
                     </Row>
                     <Row>
@@ -101,7 +107,7 @@ class Login extends Component {
                                 if (value && this.state.errMsg != null && (this.state.errMsg.title === 'passwordEmpty' || this.state.errMsg.title === 'error')) {
                                     this.setState({errMsg: null});
                                 }
-                            }} prefix={<Icon type = "lock" style = {{fontSize: 16}}/>} placeholder="密 码"/>
+                            }} prefix={< Icon type = "lock" style = {{fontSize: 16}}/>} placeholder="密 码"/>
                         </Col>
                     </Row>
                     <Button size="large" type="primary" className="login-form-button" onClick={this.handledLogin}>

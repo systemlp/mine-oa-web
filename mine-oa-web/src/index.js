@@ -14,6 +14,7 @@ import _Cascader from './cascader/_Cascader';
 import Hello from './Hello';
 import ECharts from './echarts/ECharts';
 import Login from './login/components/Login';
+import UserData from './user/components/userData';
 // import registerServiceWorker from './registerServiceWorker';
 
 const store = createStore(reducers);
@@ -31,6 +32,7 @@ render((
                 <Route path="affix" component={_Affix}/>
                 <Route path="cascader" component={_Cascader}/>
                 <Route path="Hello" component={Hello}/>
+                <Route path="userData" component={UserData}/>
             </Route>
         </Router>
     </Provider>

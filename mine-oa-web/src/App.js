@@ -3,7 +3,7 @@ import './App.css';
 import './layout.css';
 import 'antd/dist/antd.css'
 import React, {Component} from 'react';
-import {Layout, Menu, Icon, Breadcrumb} from 'antd';
+import {Layout, Menu, Icon, Breadcrumb, Dropdown, Modal, Row, Col, Input, message} from 'antd';
 import {browserHistory} from 'react-router';
 import { connect } from 'react-redux';
 
@@ -15,7 +15,10 @@ class App extends Component {
         super(props)
         this.state = {
             selectedKeys: [],
-            collapsed: false
+            collapsed: false,
+            modal: {},
+            updatePwd: {},
+            oldPwd:''
         }
     }
     toIndex = () => {
@@ -23,14 +26,110 @@ class App extends Component {
         browserHistory.push("/");
     }
     componentWillMount(){
-      const {user} = this.props;
-      if(!user || !user.userName){
+      if(!sessionStorage.getItem('token')){
         browserHistory.push('/login');
+        return;
       }
     }
     componentDidMount() {}
+    renderModal() {
+      const {modal} = this.state;
+      return <Modal {...modal}>{modal.content}</Modal>
+    }
+    cancelModal() {
+      this.setState({modal:{}});
+    }
+    renderUpdatePwd() {
+      const {updatePwd} = this.state;
+      const content = <div>
+        <Row type="flex" align="middle" className="marginB-10">
+            <Col span={6} className="txt-right">
+              <label>原始密码</label>
+            </Col>
+            <Col span={12} offset={1}>
+              <Input type="password" onChange={(e) => {
+                updatePwd.oldPwd = e.target.value;
+                this.setState({updatePwd});
+              }}/>
+            </Col>
+        </Row>
+        <Row type="flex" align="middle" className="marginB-10">
+          <Col span={6} className="txt-right">
+            <label>新密码</label>
+          </Col>
+          <Col span={12} offset={1}>
+            <Input type="password" onChange={(e) => {
+              updatePwd.newPwd = e.target.value;
+              this.setState({updatePwd});
+            }}/>
+          </Col>
+        </Row>
+        <Row type="flex" align="middle" className="marginB-10">
+          <Col span={6} className="txt-right">
+            <label>确认密码</label>
+          </Col>
+          <Col span={12} offset={1}>
+            <Input type="password" onChange={(e) => {
+              updatePwd.okPwd = e.target.value;
+              this.setState({updatePwd});
+            }}/>
+          </Col>
+        </Row>
+      </div>;
+      const modal =  {
+        visible: true,
+        title: '修改密码',
+        okText: '修改',
+        cancelText: '取消',
+        content,
+        onCancel: () => {
+          this.cancelModal();
+        },
+        onOk: () => {
+          if (!updatePwd.oldPwd) {
+            message.warning('请输入原始密码！');
+          } else if (!updatePwd.newPwd) {
+            message.warning('请输入新密码！');
+          } else if (!updatePwd.okPwd) {
+            message.warning('请输入确认密码！');
+          } else if (updatePwd.okPwd !== updatePwd.newPwd) {
+            message.error('确认密码与新密码不一致！');
+          } else {
+
+          }
+        }
+      };
+      this.setState({modal});
+    }
     render() {
-        const {user} = this.props;
+        // const {user} = this.props;
+        let user = JSON.parse(sessionStorage.getItem('user'));
+        user = user || {};
+        const menu = (
+          <Menu className="user-menu" onClick={(item, key, keyPath) => {
+            switch (item.key) {
+              case 'logout':
+                sessionStorage.clear();
+                browserHistory.push('/login');
+                break;
+              case 'updatePwd':
+                this.renderUpdatePwd();
+                break;
+              default:
+                browserHistory.push(item.key);
+            }
+          }}>
+            <Menu.Item key="/userData">
+              <Icon type="user" />个人资料
+            </Menu.Item>
+            <Menu.Item key="updatePwd">
+              <Icon type="lock" />修改密码
+            </Menu.Item>
+            <Menu.Item key="logout">
+              <Icon type="logout" />退出
+            </Menu.Item>
+          </Menu>
+        );
         return (
             <Layout>
                 <Header className="layout-header">
@@ -39,8 +138,16 @@ class App extends Component {
                             cursor: 'pointer'
                         }} onClick={this.toIndex} title="首页">
                             <img src={logo} className="app-logo" alt="logo"/>
-                            <span className="app-welcome">欢迎使用React {user.userName}</span>
+                            <span className="app-welcome">欢迎使用React</span>
                         </span>
+                        <div className="user">
+                          <Dropdown overlay={menu}>
+                            <span className="ant-dropdown-link" href="#">
+                              <img className="userImg" src={user.photoUrl} alt=""/>
+                              <Icon type="caret-down" />
+                            </span>
+                          </Dropdown>
+                        </div>
                     </div>
                 </Header>
                 <Layout>
@@ -62,21 +169,21 @@ class App extends Component {
                             });
                             browserHistory.push(item.key);
                         }}>
-                            <SubMenu title={< span > <Icon type="github"/> < span > Charts < /span></span >}>
+                            <SubMenu title={<span> <Icon type="github"/> <span> Charts </span></span>}>
                                 <Menu.Item key="/echarts">ECharts 图表</Menu.Item>
                             </SubMenu>
-                            <SubMenu title={< span > <Icon type="github"/> < span > General < /span></span >}>
+                            <SubMenu title={<span> <Icon type="github"/> <span> General </span></span>}>
                                 <Menu.Item key="/button">Button 按钮</Menu.Item>
                                 <Menu.Item key="/icon">Icon 图标</Menu.Item>
                             </SubMenu>
-                            <SubMenu title={< span > <Icon type="android"/> < span > Grid < /span></span >}>
+                            <SubMenu title={<span> <Icon type="android"/> <span> Grid </span></span>}>
                                 <Menu.Item key="/grid">Grid 栅格</Menu.Item>
                                 <Menu.Item key="/layout">Layout 布局</Menu.Item>
                             </SubMenu>
-                            <SubMenu title={< span > <Icon type="dingding"/> < span > Navigation < /span></span >}>
+                            <SubMenu title={<span> <Icon type="dingding"/> <span> Navigation </span></span>}>
                                 <Menu.Item key="/affix">Affix 固钉</Menu.Item>
                             </SubMenu>
-                            <SubMenu title={< span > <Icon type="aliwangwang"/> < span > Data Entry < /span></span >}>
+                            <SubMenu title={<span> <Icon type="aliwangwang"/> <span> Data Entry </span></span>}>
                                 <Menu.Item key="/cascader">Cascader 级联选择</Menu.Item>
                             </SubMenu>
                         </Menu>
@@ -94,6 +201,7 @@ class App extends Component {
                     </Content>
                 </Layout>
                 <Footer>footer</Footer>
+                {this.renderModal()}
             </Layout>
         // <div className="App">
         //     <div className="App-header">
