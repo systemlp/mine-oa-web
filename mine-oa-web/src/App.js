@@ -4,8 +4,9 @@ import './layout.css';
 import 'antd/dist/antd.css'
 import React, {Component} from 'react';
 import {Layout, Menu, Icon, Breadcrumb, Dropdown, Modal, Row, Col, Input, message} from 'antd';
-import {browserHistory} from 'react-router';
+import { browserHistory } from 'react-router';
 import { connect } from 'react-redux';
+import { fetchUtil } from './utils/fetchUtil'
 
 const {Header, Sider, Content, Footer} = Layout;
 const {SubMenu} = Menu;
@@ -34,57 +35,68 @@ class App extends Component {
     componentDidMount() {}
     renderModal() {
       const {modal} = this.state;
+      modal.onCancel = () => {
+        this.setState({modal:{}});
+      };
+      if(!modal.okText){
+        modal.okText = '确定';
+      }
+      if(!modal.cancelText){
+        modal.cancelText = '取消';
+      }
+      const {type} = modal;
+      switch (type) {
+        case 'updatePwd':
+          const {updatePwd} = this.state;
+          let {oldPwd, newPwd, okPwd} = updatePwd;
+          modal.content = <div>
+            <Row type="flex" align="middle" className="marginB-10">
+                <Col span={6} className="txt-right">
+                  <label>原始密码</label>
+                </Col>
+                <Col span={12} offset={1}>
+                  <Input type="password" value={oldPwd} onChange={(e) => {
+                    updatePwd.oldPwd = e.target.value;
+                    this.setState({updatePwd});
+                  }}/>
+                </Col>
+            </Row>
+            <Row type="flex" align="middle" className="marginB-10">
+              <Col span={6} className="txt-right">
+                <label>新密码</label>
+              </Col>
+              <Col span={12} offset={1}>
+                <Input type="password" value={newPwd} onChange={(e) => {
+                  updatePwd.newPwd = e.target.value;
+                  this.setState({updatePwd});
+                }}/>
+              </Col>
+            </Row>
+            <Row type="flex" align="middle" className="marginB-10">
+              <Col span={6} className="txt-right">
+                <label>确认密码</label>
+              </Col>
+              <Col span={12} offset={1}>
+                <Input type="password" value={okPwd} onChange={(e) => {
+                  updatePwd.okPwd = e.target.value;
+                  this.setState({updatePwd});
+                }}/>
+              </Col>
+            </Row>
+          </div>;
+          break;
+        default:
+          modal.content = null;
+      }
       return <Modal {...modal}>{modal.content}</Modal>
-    }
-    cancelModal() {
-      this.setState({modal:{}});
     }
     renderUpdatePwd() {
       const {updatePwd} = this.state;
-      const content = <div>
-        <Row type="flex" align="middle" className="marginB-10">
-            <Col span={6} className="txt-right">
-              <label>原始密码</label>
-            </Col>
-            <Col span={12} offset={1}>
-              <Input type="password" onChange={(e) => {
-                updatePwd.oldPwd = e.target.value;
-                this.setState({updatePwd});
-              }}/>
-            </Col>
-        </Row>
-        <Row type="flex" align="middle" className="marginB-10">
-          <Col span={6} className="txt-right">
-            <label>新密码</label>
-          </Col>
-          <Col span={12} offset={1}>
-            <Input type="password" onChange={(e) => {
-              updatePwd.newPwd = e.target.value;
-              this.setState({updatePwd});
-            }}/>
-          </Col>
-        </Row>
-        <Row type="flex" align="middle" className="marginB-10">
-          <Col span={6} className="txt-right">
-            <label>确认密码</label>
-          </Col>
-          <Col span={12} offset={1}>
-            <Input type="password" onChange={(e) => {
-              updatePwd.okPwd = e.target.value;
-              this.setState({updatePwd});
-            }}/>
-          </Col>
-        </Row>
-      </div>;
       const modal =  {
         visible: true,
         title: '修改密码',
         okText: '修改',
-        cancelText: '取消',
-        content,
-        onCancel: () => {
-          this.cancelModal();
-        },
+        type: 'updatePwd',
         onOk: () => {
           if (!updatePwd.oldPwd) {
             message.warning('请输入原始密码！');
@@ -95,7 +107,20 @@ class App extends Component {
           } else if (updatePwd.okPwd !== updatePwd.newPwd) {
             message.error('确认密码与新密码不一致！');
           } else {
-
+            fetchUtil({
+              url: '/user/updatePwd',
+              method: 'POST',
+              body: updatePwd,
+              callBack: (result) => {
+                if (result.code === 200) {
+                    message.success(result.msg, 1, () => {
+                      this.setState({modal:{}, updatePwd: {}});
+                    });
+                } else {
+                  message.error(result.msg);
+                }
+              }
+            });
           }
         }
       };

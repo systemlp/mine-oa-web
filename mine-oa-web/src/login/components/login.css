@@ -40,15 +40,19 @@
     margin-top: 15px;
 }
 
-.login-container .ant-row>div:not(.gutter-row):nth-child(odd), .ant-row-flex>div:not(.gutter-row):nth-child(odd) {
+.login-container .ant-row{
+  margin-top: 15px;
+}
+
+.login-container .ant-row>div:not(.gutter-row):nth-child(odd),.login-container .ant-row-flex>div:not(.gutter-row):nth-child(odd) {
     background: none;
 }
 
-.ant-row>div, .ant-row-flex>div {
+.login-container .ant-row>div,.login-container .ant-row-flex>div {
     text-align: left;
     font-size: 12px;
 }
 
-.ant-form-item {
+.login-container .ant-form-item {
     margin-bottom: 0;
 }
