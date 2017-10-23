@@ -13,7 +13,7 @@ const {SubMenu} = Menu;
 
 class App extends Component {
     constructor(props) {
-        super(props)
+        super(props);
         this.state = {
             selectedKeys: [],
             collapsed: false,
@@ -106,6 +106,8 @@ class App extends Component {
             message.warning('请输入确认密码！');
           } else if (updatePwd.okPwd !== updatePwd.newPwd) {
             message.error('确认密码与新密码不一致！');
+          }  else if (updatePwd.oldPwd === updatePwd.newPwd) {
+            message.error('新密码不得与原始密码不一致！');
           } else {
             fetchUtil({
               url: '/user/updatePwd',
@@ -115,6 +117,8 @@ class App extends Component {
                 if (result.code === 200) {
                     message.success(result.msg, 1, () => {
                       this.setState({modal:{}, updatePwd: {}});
+                      sessionStorage.clear();
+                      browserHistory.push('/login');
                     });
                 } else {
                   message.error(result.msg);

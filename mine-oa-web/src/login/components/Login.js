@@ -96,7 +96,7 @@ class Login extends Component {
                                 if (value && this.state.errMsg != null && (this.state.errMsg.title === 'nameEmpty' || this.state.errMsg.title === 'error')) {
                                     this.setState({errMsg: null});
                                 }
-                            }} prefix={< Icon type = "user" style = {{fontSize: 16}}/>} placeholder="用户名"/>
+                            }} prefix={<Icon type = "user" style = {{fontSize: 16}}/>} placeholder="用户名"/>
                         </Col>
                     </Row>
                     <Row>
@@ -107,7 +107,7 @@ class Login extends Component {
                                 if (value && this.state.errMsg != null && (this.state.errMsg.title === 'passwordEmpty' || this.state.errMsg.title === 'error')) {
                                     this.setState({errMsg: null});
                                 }
-                            }} prefix={< Icon type = "lock" style = {{fontSize: 16}}/>} placeholder="密 码"/>
+                            }} prefix={<Icon type = "lock" style = {{fontSize: 16}}/>} placeholder="密 码"/>
                         </Col>
                     </Row>
                     <Button size="large" type="primary" className="login-form-button" onClick={this.handledLogin}>
