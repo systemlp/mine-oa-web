@@ -41,7 +41,7 @@ class Login extends Component {
     }
     handledLogin = () => {
         const {userName, password} = this.state;
-        const {dispatch, onLogin, user} = this.props;
+        const {onLogin} = this.props;
         if (!userName) {
             this.setState({errMsg: errMsg.nameEmpty});
         } else if (!password) {

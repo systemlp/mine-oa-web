@@ -21,7 +21,7 @@ export const fetchUtil = (params={}) => {
     }
     url += `?${params.join('&')}`
   }
-  const request = new Request(url, fetchOptions);
+  // const request = new Request(url, fetchOptions);
   fetch(url, fetchOptions).then(res => {
     res.json().then(result => {
       callBack(result)

@@ -2,7 +2,7 @@ import 'antd/dist/antd.css';
 import './userData.css';
 import React, {Component} from 'react';
 import {Row, Col, message} from 'antd';
-import {fetchUtil} from '../../utils/fetchUtil'
+import {fetchUtil} from '../../utils/fetchUtil';
 
 class UserData extends Component {
     constructor(props) {

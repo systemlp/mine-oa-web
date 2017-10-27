@@ -198,6 +198,9 @@ class App extends Component {
                             });
                             browserHistory.push(item.key);
                         }}>
+                            <SubMenu title={<span> <Icon type="github"/> <span> 组织架构 </span></span>}>
+                                <Menu.Item key="/dept">部门管理</Menu.Item>
+                            </SubMenu>
                             <SubMenu title={<span> <Icon type="github"/> <span> Charts </span></span>}>
                                 <Menu.Item key="/echarts">ECharts 图表</Menu.Item>
                             </SubMenu>
@@ -218,38 +221,20 @@ class App extends Component {
                         </Menu>
                     </Sider>
                     <Content>
-                        <Breadcrumb style={{margin: 10}} separator=">>">
+                        {/* <Breadcrumb style={{margin: 10}} separator=">>">
                             <Breadcrumb.Item>
                                 <Icon type="home"/>
                             </Breadcrumb.Item>
                             <Breadcrumb.Item>
                                 {this.state.selectedKeys.length<1?'':this.state.selectedKeys[0].substring(1)}
                             </Breadcrumb.Item>
-                        </Breadcrumb>
+                        </Breadcrumb> */}
                         <div id="layout-content" className="layout-content">{this.props.children}</div>
                     </Content>
                 </Layout>
                 <Footer>footer</Footer>
                 {this.renderModal()}
             </Layout>
-        // <div className="App">
-        //     <div className="App-header">
-        //         <img src={logo} className="App-logo" alt="logo"/>
-        //         <h2>欢迎使用React</h2>
-        //     </div>
-        //     <Button type="primary">cfjnd</Button>
-        //     <p className="App-intro">
-        //         To get started, edit
-        //         <code>src/App.js</code>
-        //         and save to reload.
-        //     </p>
-        //     <ul>
-        //         <li onClick={() => {
-        //             browserHistory.push("/hello")
-        //         }}>xnolre</li>
-        //     </ul>
-        //     {this.props.children}
-        // </div>
         );
     }
 }
