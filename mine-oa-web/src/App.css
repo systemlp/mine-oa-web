@@ -27,6 +27,10 @@
     }
 }
 
+#root {
+  min-width: 1024px;
+}
+
 .txt-left {
     text-align: left !important;
 }

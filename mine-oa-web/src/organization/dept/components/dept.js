@@ -1,49 +1,10 @@
 import 'antd/dist/antd.css';
 import React, {Component} from 'react';
-import {Table, Row, Col, message, Button, Input, Select } from 'antd';
+import {Table, Row, Col, message, Button, Input, Select, Icon } from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
+import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
 
 const Option = Select.Option;
-const columns = [
-    {
-        title: '部门编号',
-        dataIndex: 'id',
-        key: 'id',
-        className: 'txt-center',
-        width: '15%'
-    }, {
-        title: '部门名称',
-        dataIndex: 'name',
-        key: 'name',
-        className: 'txt-center',
-        width: '25%'
-    }, {
-        title: '父级部门',
-        dataIndex: 'parentName',
-        key: 'parentName',
-        className: 'txt-center',
-        width: '25%'
-    }, {
-        title: '状态',
-        dataIndex: 'state',
-        key: 'state',
-        className: 'txt-center',
-        width: '15%',
-        render: state => {
-            return state === 1
-                ? '正常'
-                : '删除'
-        }
-    }, {
-        title: '操作',
-        dataIndex: 'id',
-        key: 'operate',
-        className: 'txt-center',
-        render: (id, record) => {
-            return <Button>编辑</Button>
-        }
-    }
-];
 
 class Dept extends Component {
     state = {
@@ -56,8 +17,63 @@ class Dept extends Component {
           }
         },
         loading: false,
-        deptQuery: {}
+        deptQuery: {},
+        editDept: {}
     };
+    columns = [
+        {
+            title: '部门编号',
+            dataIndex: 'id',
+            key: 'id',
+            className: 'txt-center',
+            width: '15%'
+        }, {
+            title: '部门名称',
+            dataIndex: 'name',
+            key: 'name',
+            className: 'txt-center',
+            width: '25%',
+            render: (name, record, index) => {
+              return (
+                <EditableInput value={name} editable={record.editable} onChange={ (newName) => {
+                  const {editDept} = this.state;
+                  editDept.name = newName;
+                  this.setState({editDept});
+                }} />
+              );
+            }
+        }, {
+            title: '父级部门',
+            dataIndex: 'parentName',
+            key: 'parentName',
+            className: 'txt-center',
+            width: '25%'
+        }, {
+            title: '状态',
+            dataIndex: 'state',
+            key: 'state',
+            className: 'txt-center',
+            width: '15%',
+            render: state => {
+                return state === 1
+                    ? '正常'
+                    : '删除'
+            }
+        }, {
+            title: '操作',
+            dataIndex: 'id',
+            key: 'operate',
+            className: 'txt-center',
+            render: (id, record, index) => {
+              return (
+                record.editable ?
+                <span><a>保 存</a>&nbsp;&nbsp;&nbsp;&nbsp;<a onClick = {() => this.cancelEdit(index)}>取 消</a></span>
+                :
+                <a onClick = {() => this.edit(index)}>编 辑</a>
+              );
+            }
+        }
+    ];
     componentWillMount() {
       this.fetchData();
     }
@@ -83,12 +99,26 @@ class Dept extends Component {
         }
       });
     }
-    handleTableChange = (pagination, filters, sorter) => {
+    handleTableChange(pagination, filters, sorter) {
       const {deptQuery} = this.state;
       deptQuery.current = pagination.current;
       deptQuery.pageSize = pagination.pageSize;
       this.setState({pagination, deptQuery});
       this.fetchData();
+    }
+    edit(index) {
+      const {data} = this.state;
+      const editDept = {
+        name: data[index].name,
+        parentId: data[index].parentId
+      };
+      data[index].editable = true;
+      this.setState({editDept, data});
+    }
+    cancelEdit(index) {
+      const {data} = this.state;
+      data[index].editable = null;
+      this.setState({data, editDept:{}});
     }
     render() {
       const {deptQuery} = this.state;
@@ -128,12 +158,12 @@ class Dept extends Component {
           </Row>
           <Row type="flex" justify="end" className="marginB-10">
             <Col span={2} className="txt-center">
-              <Button type="primary" onClick= {() => {
+              <Button type="primary" loading={this.state.loading} onClick= {() => {
                 this.fetchData();
               }}>查询</Button>
             </Col>
           </Row>
-          <Table className="marginT-10" columns={columns}
+          <Table className="marginT-10" columns={this.columns}
             rowKey={record => record.id}
             dataSource={this.state.data}
             pagination={this.state.pagination}
