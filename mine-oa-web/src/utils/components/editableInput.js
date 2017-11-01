@@ -16,7 +16,7 @@ export class EditableInput extends Component {
                 value={value}
                 onChange={e => {
                   const newValue = e.target.value.trim();
-                  this.props.onChange(value:newValue);
+                  onChange(newValue);
                 }}
               />
             </div>
@@ -32,23 +32,23 @@ export class EditableInput extends Component {
 
 export class EditableSelect extends Component {
   render() {
-    const {obj, editable, data} = this.props;
+    const {data, editable, dataSource, allowClear} = this.props;
     return (
       <div>
         {
           editable ?
             <div>
-              <Select className="width-per-100" defaultValue={obj.value} onChange={(value) => {
-                this.props.onChange(value.split('_'));
+              <Select className="width-per-100" value={data.value?`${data.value}_${data.text}`:null} allowClear={allowClear} onChange={(value) => {
+                this.props.onChange(value? value.split('_') : undefined);
               }}>
-                {data.map((item) => {
-                  <Option value={`${item.value}_${item.text}`}>{item.text}</Option>
+                {dataSource.map((item) => {
+                  return <Option key={`${item.value}_${item.text}`} value={`${item.value}_${item.text}`}>{item.text}</Option>
                 })}
               </Select>
             </div>
             :
             <div>
-              {obj.text || ''}
+              {data.text || ''}
             </div>
         }
       </div>

@@ -3,7 +3,7 @@ import './App.css';
 import './layout.css';
 import 'antd/dist/antd.css'
 import React, {Component} from 'react';
-import {Layout, Menu, Icon, Breadcrumb, Dropdown, Modal, Row, Col, Input, message} from 'antd';
+import {Layout, Menu, Icon, /*Breadcrumb,*/ Dropdown, Modal, Row, Col, Input, message} from 'antd';
 import { browserHistory } from 'react-router';
 import { connect } from 'react-redux';
 import { fetchUtil } from './utils/fetchUtil'
@@ -63,7 +63,7 @@ class App extends Component {
             </Row>
             <Row type="flex" align="middle" className="marginB-10">
               <Col span={6} className="txt-right">
-                <label>新密码</label>
+                <label>新 密 码</label>
               </Col>
               <Col span={12} offset={1}>
                 <Input type="password" value={newPwd} onChange={(e) => {
@@ -198,8 +198,12 @@ class App extends Component {
                             });
                             browserHistory.push(item.key);
                         }}>
-                            <SubMenu title={<span> <Icon type="github"/> <span> 组织架构 </span></span>}>
+                            <SubMenu title={<span> <Icon type="team" /> <span> 组织架构 </span></span>}>
                                 <Menu.Item key="/dept">部门管理</Menu.Item>
+                                <Menu.Item key="/position">职位管理</Menu.Item>
+                                <Menu.Item key="/employee">员工管理</Menu.Item>
+                                <Menu.Item key="/menu">菜单管理</Menu.Item>
+                                <Menu.Item key="/role">角色管理</Menu.Item>
                             </SubMenu>
                             <SubMenu title={<span> <Icon type="github"/> <span> Charts </span></span>}>
                                 <Menu.Item key="/echarts">ECharts 图表</Menu.Item>

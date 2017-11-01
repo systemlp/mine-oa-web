@@ -4,14 +4,14 @@ export const fetchUtil = (params={}) => {
   const headers = new Headers();
   headers.append('Accept', 'application/json');
   headers.append('Content-Type', 'application/json;charset=UTF-8');
+  const token = sessionStorage.getItem('token');
+  if(token){
+    headers.append('token', token);
+  }
   const fetchOptions = {
     method,
     headers,
   };
-  const token = sessionStorage.getItem('token');
-  if(token){
-    body.token = token;
-  }
   if (method !== 'get'){
     fetchOptions.body = JSON.stringify(body);
   } else {
@@ -19,7 +19,9 @@ export const fetchUtil = (params={}) => {
     for (let key in body) {
       params.push(`${key}=${body[key]}`)
     }
-    url += `?${params.join('&')}`
+    if(params.length){
+      url += `?${params.join('&')}`
+    }
   }
   // const request = new Request(url, fetchOptions);
   fetch(url, fetchOptions).then(res => {

@@ -1,6 +1,6 @@
 import 'antd/dist/antd.css';
 import React, {Component} from 'react';
-import {Table, Row, Col, message, Button, Input, Select, Icon } from 'antd';
+import {Table, Row, Col, message, Button, Input, Select, Popconfirm} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
 
@@ -11,14 +11,18 @@ class Dept extends Component {
         data: [],
         pagination: {
           showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50'],
+          pageSizeOptions: ['5', '10', '20', '50'],
           showTotal: (total, range) => {
             return `共${total}条 / 当前${range.join('至')}条`;
           }
         },
         loading: false,
-        deptQuery: {},
-        editDept: {}
+        deptQuery: {
+          pageSize: 5,
+          current: 1
+        },
+        editDeptMap: new Map(),
+        parentDeptMap: new Map()
     };
     columns = [
         {
@@ -34,11 +38,13 @@ class Dept extends Component {
             className: 'txt-center',
             width: '25%',
             render: (name, record, index) => {
+              const {editDeptMap} = this.state;
+              const editDept = editDeptMap.get(record.id);
               return (
-                <EditableInput value={name} editable={record.editable} onChange={ (newName) => {
-                  const {editDept} = this.state;
+                <EditableInput value={record.editable ? editDept.name : name} editable={record.editable} onChange={newName => {
                   editDept.name = newName;
-                  this.setState({editDept});
+                  editDeptMap.set(editDept.id, editDept);
+                  this.setState({editDeptMap});
                 }} />
               );
             }
@@ -47,7 +53,38 @@ class Dept extends Component {
             dataIndex: 'parentName',
             key: 'parentName',
             className: 'txt-center',
-            width: '25%'
+            width: '25%',
+            render: (parentName, record, index) => {
+              const {editDeptMap, parentDeptMap} = this.state;
+              const editDept = editDeptMap.get(record.id);
+              const parentDeptList = parentDeptMap.get(record.id);
+              const data = {
+                value: record.editable ? editDept.parentId : record.parentId,
+                text: record.editable ? editDept.parentName : parentName
+              };
+              let dataSource = [];
+              if(record.editable){
+                parentDeptList.map(item => {
+                  dataSource.push({
+                    value: item.id,
+                    text: item.name
+                  });
+                });
+              }
+              return (
+                <EditableSelect data={data} dataSource={dataSource} allowClear={true} editable={record.editable} onChange={result => {
+                  if (result) {
+                    editDept.parentId = result[0];
+                    editDept.parentName = result[1];
+                  } else {
+                    editDept.parentId = undefined;
+                    editDept.parentName = undefined;
+                  }
+                  editDeptMap.set(editDept.id, editDept);
+                  this.setState({editDeptMap});
+                }} />
+              );
+            }
         }, {
             title: '状态',
             dataIndex: 'state',
@@ -65,12 +102,43 @@ class Dept extends Component {
             key: 'operate',
             className: 'txt-center',
             render: (id, record, index) => {
-              return (
-                record.editable ?
-                <span><a>保 存</a>&nbsp;&nbsp;&nbsp;&nbsp;<a onClick = {() => this.cancelEdit(index)}>取 消</a></span>
-                :
-                <a onClick = {() => this.edit(index)}>编 辑</a>
-              );
+              const {editable, state} = record;
+              return <div>
+                {
+                  editable ?
+                  <span>
+                    <a onClick = {() => this.save(index)}>保 存</a>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <a onClick = {() => this.cancelEdit(index)}>取 消</a>
+                    {
+                      state === 1 ?
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                          <a>删 除</a>
+                        </Popconfirm>
+                      </span>
+                      :
+                      null
+                    }
+                  </span>
+                  :
+                  <span>
+                    <a onClick = {() => this.edit(index)}>编 辑</a>
+                    {
+                      state === 1 ?
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                          <a>删 除</a>
+                        </Popconfirm>
+                      </span>
+                      :
+                      null
+                    }
+                  </span>
+                }
+              </div>;
             }
         }
     ];
@@ -99,7 +167,7 @@ class Dept extends Component {
         }
       });
     }
-    handleTableChange(pagination, filters, sorter) {
+    handleTableChange = (pagination, filters, sorter) => {
       const {deptQuery} = this.state;
       deptQuery.current = pagination.current;
       deptQuery.pageSize = pagination.pageSize;
@@ -107,18 +175,90 @@ class Dept extends Component {
       this.fetchData();
     }
     edit(index) {
-      const {data} = this.state;
+      const {data, editDeptMap, parentDeptMap} = this.state;
+      for (let item of data) {
+        if(item.editable){
+          message.warn('同时只允许编辑单个部门！');
+          return;
+        }
+      }
+      const curData = data[index];
       const editDept = {
-        name: data[index].name,
-        parentId: data[index].parentId
+        id: curData.id,
+        name: curData.name,
+        parentId: curData.parentId,
+        parentName: curData.parentName
       };
-      data[index].editable = true;
-      this.setState({editDept, data});
+      curData.editable = true;
+      editDeptMap.set(editDept.id, editDept);
+      fetchUtil({
+        url: `/dept/findOptionalParent/${curData.id}`,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const deptList = result.data;
+            parentDeptMap.set(curData.id, deptList);
+            this.setState({editDeptMap, data, parentDeptMap});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
+    }
+    save(index) {
+      const {data, editDeptMap} = this.state;
+      const curData = data[index];
+      const editDept = editDeptMap.get(curData.id);
+      if (curData.name === editDept.name && curData.parentId === editDept.parentId) {
+        this.cancelEdit(index);
+        return;
+      }
+      fetchUtil({
+        url: '/dept/merge',
+        method: 'post',
+        body: editDept,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            curData.editable = null;
+            curData.name = editDept.name;
+            curData.parentId = editDept.parentId;
+            curData.parentName = editDept.parentName
+            this.setState({data, editDeptMap: new Map()});
+            message.info(msg);
+          } else {
+            message.error(msg);
+          }
+        }
+      });
+    }
+    delete(id) {
+      fetchUtil({
+        url: `/dept/delete/${id}`,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            message.info(msg);
+            const {deptQuery} = this.state;
+            deptQuery.current = 1;
+            this.setState({deptQuery});
+            this.fetchData();
+            return;
+          }
+          if (code === 403) {
+            message.warn(msg);
+            return;
+          }
+          message.error(msg);
+        }
+      });
     }
     cancelEdit(index) {
-      const {data} = this.state;
+      const {data, editDeptMap} = this.state;
       data[index].editable = null;
-      this.setState({data, editDept:{}});
+      const curData = data[index];
+      editDeptMap.delete(curData.id);
+      this.setState({data, editDeptMap});
     }
     render() {
       const {deptQuery} = this.state;
@@ -144,7 +284,7 @@ class Dept extends Component {
                   this.setState({deptQuery});
                 }}/>
               </Col><Col span={2} offset={1} className="txt-right">
-                <label>部门名称</label>
+                <label>状 态</label>
               </Col>
               <Col className="marginL-10" span={5}>
                 <Select className="width-per-100" value={deptQuery.state} onChange={(value) => {
@@ -159,6 +299,9 @@ class Dept extends Component {
           <Row type="flex" justify="end" className="marginB-10">
             <Col span={2} className="txt-center">
               <Button type="primary" loading={this.state.loading} onClick= {() => {
+                const {pagination} = this.state;
+                pagination.current = 1;
+                pagination.pageSize = 5;
                 this.fetchData();
               }}>查询</Button>
             </Col>
