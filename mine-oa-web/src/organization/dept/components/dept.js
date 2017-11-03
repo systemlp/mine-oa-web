@@ -1,6 +1,6 @@
 import 'antd/dist/antd.css';
 import React, {Component} from 'react';
-import {Table, Row, Col, message, Button, Input, Select, Popconfirm} from 'antd';
+import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
 
@@ -22,7 +22,10 @@ class Dept extends Component {
           current: 1
         },
         editDeptMap: new Map(),
-        parentDeptMap: new Map()
+        parentDeptMap: new Map(),
+        modal: {},
+        insertDept: {},
+        deptList: []
     };
     columns = [
         {
@@ -65,7 +68,7 @@ class Dept extends Component {
               let dataSource = [];
               if(record.editable){
                 parentDeptList.map(item => {
-                  dataSource.push({
+                  return dataSource.push({
                     value: item.id,
                     text: item.name
                   });
@@ -114,12 +117,15 @@ class Dept extends Component {
                       state === 1 ?
                       <span>
                         &nbsp;&nbsp;&nbsp;&nbsp;
-                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(index)}>
                           <a>删 除</a>
                         </Popconfirm>
                       </span>
                       :
-                      null
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                          <a onClick={() => this.enable(index)}>启 用</a>
+                      </span>
                     }
                   </span>
                   :
@@ -129,12 +135,15 @@ class Dept extends Component {
                       state === 1 ?
                       <span>
                         &nbsp;&nbsp;&nbsp;&nbsp;
-                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(index)}>
                           <a>删 除</a>
                         </Popconfirm>
                       </span>
                       :
-                      null
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                          <a onClick={() => this.enable(index)}>启 用</a>
+                      </span>
                     }
                   </span>
                 }
@@ -144,6 +153,18 @@ class Dept extends Component {
     ];
     componentWillMount() {
       this.fetchData();
+      fetchUtil({
+        url: '/dept/findOptional',
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data: deptList} = result;
+            this.setState({deptList});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
     }
     fetchData() {
       this.setState({ loading: true });
@@ -196,8 +217,7 @@ class Dept extends Component {
         callBack: result => {
           const {code, msg} = result;
           if (code === 200) {
-            const deptList = result.data;
-            parentDeptMap.set(curData.id, deptList);
+            parentDeptMap.set(curData.id, result.data);
             this.setState({editDeptMap, data, parentDeptMap});
           } else {
             message.error(msg);
@@ -219,34 +239,76 @@ class Dept extends Component {
         body: editDept,
         callBack: result => {
           const {code, msg} = result;
-          if (code === 200) {
-            curData.editable = null;
-            curData.name = editDept.name;
-            curData.parentId = editDept.parentId;
-            curData.parentName = editDept.parentName
-            this.setState({data, editDeptMap: new Map()});
-            message.info(msg);
-          } else {
-            message.error(msg);
+          switch (code) {
+            case 200:
+              curData.editable = null;
+              curData.name = editDept.name;
+              curData.parentId = editDept.parentId;
+              curData.parentName = editDept.parentName
+              this.setState({data, editDeptMap: new Map()});
+              message.info(msg);
+              break;
+            case 403:
+              message.warn(msg);
+              editDept.parentId = undefined;
+              editDept.parentName = undefined;
+              this.setState({editDeptMap});
+              fetchUtil({
+                url: `/dept/findOptionalParent/${curData.id}`,
+                callBack: result => {
+                  const {code, msg} = result;
+                  if (code === 200) {
+                    const {parentDeptMap} = this.state;
+                    parentDeptMap.set(curData.id, result.data);
+                    this.setState({parentDeptMap});
+                  } else {
+                    message.error(msg);
+                  }
+                }
+              });
+              break;
+            default:
+              message.error(msg);
           }
         }
       });
     }
-    delete(id) {
+    delete(index) {
+      const {data} = this.state;
+      const curData = data[index];
       fetchUtil({
-        url: `/dept/delete/${id}`,
+        url: `/dept/delete/${curData.id}`,
         callBack: result => {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            const {deptQuery} = this.state;
-            deptQuery.current = 1;
-            this.setState({deptQuery});
-            this.fetchData();
+            // const {deptQuery} = this.state;
+            // deptQuery.current = 1;
+            // this.setState({deptQuery});
+            // this.fetchData();
+            curData.state = 0;
+            this.setState({data});
             return;
           }
           if (code === 403) {
             message.warn(msg);
+            return;
+          }
+          message.error(msg);
+        }
+      });
+    }
+    enable(index) {
+      const {data} = this.state;
+      const curData = data[index];
+      fetchUtil({
+        url: `/dept/enable/${curData.id}`,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            message.info(msg);
+            curData.state = 1;
+            this.setState({data});
             return;
           }
           message.error(msg);
@@ -259,6 +321,112 @@ class Dept extends Component {
       const curData = data[index];
       editDeptMap.delete(curData.id);
       this.setState({data, editDeptMap});
+    }
+    renderModal() {
+      const {modal} = this.state;
+      modal.onCancel = () => {
+        this.setState({modal:{}});
+      };
+      if(!modal.okText){
+        modal.okText = '确定';
+      }
+      if(!modal.cancelText){
+        modal.cancelText = '取消';
+      }
+      const {type} = modal;
+      switch (type) {
+        case 'insertDept':
+          const {insertDept, deptList} = this.state;
+          let {name, parentId} = insertDept;
+          modal.content = <div>
+            <Row type="flex" align="middle" className="marginB-10">
+                <Col span={6} className="txt-right">
+                  <label>部门名称</label>
+                </Col>
+                <Col span={12} offset={1}>
+                  <Input value={name} onChange={(e) => {
+                    name = e.target.value.trim();
+                    insertDept.name = name;
+                    this.setState({insertDept});
+                  }}/>
+                </Col>
+            </Row>
+            <Row type="flex" align="middle" className="marginB-10">
+              <Col span={6} className="txt-right">
+                <label>父级部门</label>
+              </Col>
+              <Col span={12} offset={1}>
+              <Select className="width-per-100" value={parentId} onChange={(parentId) => {
+                insertDept.parentId = parentId;
+                this.setState({insertDept});
+              }} placeholder="请选择" allowClear>
+                {
+                  deptList.map((deptItem) => {
+                    const {
+                      id,
+                      name
+                    } = deptItem;
+                    return <Option key={id} value={`${id}`}>{name}</Option>
+                  })
+                }
+              </Select>
+              </Col>
+            </Row>
+          </div>;
+          break;
+        default:
+          modal.content = null;
+      }
+      return <Modal {...modal}>{modal.content}</Modal>
+    }
+    renderInsert() {
+      const {insertDept} = this.state;
+      const modal =  {
+        visible: true,
+        title: '新增部门',
+        type: 'insertDept',
+        onOk: () => {
+          if (!insertDept.name) {
+            message.warning('请输入部门名称！');
+            return;
+          }
+          fetchUtil({
+            url: '/dept/insert',
+            method: 'POST',
+            body: insertDept,
+            callBack: (result) => {
+              const {code, msg} = result;
+              switch (code) {
+                case 200:
+                  message.success(msg);
+                  const {pagination} = this.state;
+                  pagination.current = 1;
+                  this.setState({pagination, modal: {}, insertDept: {}});
+                  this.fetchData();
+                  break;
+                case 403:
+                  message.warn(msg);
+                  fetchUtil({
+                    url: '/dept/findOptional',
+                    callBack: result => {
+                      const {code, msg} = result;
+                      if (code === 200) {
+                        const {data: deptList} = result;
+                        this.setState({deptList});
+                      } else {
+                        message.error(msg);
+                      }
+                    }
+                  });
+                  break;
+                default:
+                  message.error(result.msg);
+              }
+            }
+          });
+        }
+      };
+      this.setState({modal});
     }
     render() {
       const {deptQuery} = this.state;
@@ -297,13 +465,14 @@ class Dept extends Component {
               </Col>
           </Row>
           <Row type="flex" justify="end" className="marginB-10">
-            <Col span={2} className="txt-center">
-              <Button type="primary" loading={this.state.loading} onClick= {() => {
+            <Col span={4} className="txt-center">
+              <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
                 const {pagination} = this.state;
                 pagination.current = 1;
-                pagination.pageSize = 5;
+                this.setState({pagination});
                 this.fetchData();
               }}>查询</Button>
+              <Button onClick={() => this.renderInsert()}>新增</Button>
             </Col>
           </Row>
           <Table className="marginT-10" columns={this.columns}
@@ -313,6 +482,7 @@ class Dept extends Component {
             loading={this.state.loading}
             onChange={this.handleTableChange}
           />
+          {this.renderModal()}
         </div>
       );
   }

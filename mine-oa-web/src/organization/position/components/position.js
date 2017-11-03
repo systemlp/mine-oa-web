@@ -1,6 +1,6 @@
 import 'antd/dist/antd.css';
 import React, {Component} from 'react';
-import {Table, Row, Col, message, Button, Input, Select, Popconfirm} from 'antd';
+import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
 
@@ -22,7 +22,9 @@ class Position extends Component {
           current: 1
         },
         editPositionMap: new Map(),
-        deptList: []
+        deptList: [],
+        modal: {},
+        insertPosition: {}
     };
     columns = [
         {
@@ -64,7 +66,7 @@ class Position extends Component {
               let dataSource = [];
               if(record.editable){
                 deptList.map(item => {
-                  dataSource.push({
+                  return dataSource.push({
                     value: item.id,
                     text: item.name
                   });
@@ -113,12 +115,15 @@ class Position extends Component {
                       state === 1 ?
                       <span>
                         &nbsp;&nbsp;&nbsp;&nbsp;
-                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(index)}>
                           <a>删 除</a>
                         </Popconfirm>
                       </span>
                       :
-                      null
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                          <a onClick={() => this.enable(index)}>启 用</a>
+                      </span>
                     }
                   </span>
                   :
@@ -128,12 +133,15 @@ class Position extends Component {
                       state === 1 ?
                       <span>
                         &nbsp;&nbsp;&nbsp;&nbsp;
-                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(id)}>
+                        <Popconfirm title="确定删除吗?" onConfirm={() => this.delete(index)}>
                           <a>删 除</a>
                         </Popconfirm>
                       </span>
                       :
-                      null
+                      <span>
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                          <a onClick={() => this.enable(index)}>启 用</a>
+                      </span>
                     }
                   </span>
                 }
@@ -142,6 +150,7 @@ class Position extends Component {
         }
     ];
     componentWillMount() {
+      this.fetchData();
       fetchUtil({
         url: '/dept/findOptional',
         callBack: result => {
@@ -154,7 +163,6 @@ class Position extends Component {
           }
         }
       });
-      this.fetchData();
     }
     fetchData() {
       this.setState({ loading: true });
@@ -187,6 +195,18 @@ class Position extends Component {
       this.fetchData();
     }
     edit(index) {
+      fetchUtil({
+        url: '/dept/findOptional',
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data: deptList} = result;
+            this.setState({deptList});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
       const {data, editPositionMap} = this.state;
       const curData = data[index];
       const editPosition = {
@@ -197,7 +217,7 @@ class Position extends Component {
       };
       curData.editable = true;
       editPositionMap.set(editPosition.id, editPosition);
-      this.setState({data, editPositionMap})
+      this.setState({data, editPositionMap});
     }
     save(index) {
       const {data, editPositionMap} = this.state;
@@ -213,35 +233,71 @@ class Position extends Component {
         body: editPosition,
         callBack: result => {
           const {code, msg} = result;
-          if (code === 200) {
-            curData.editable = null;
-            curData.name = editPosition.name;
-            curData.deptId = editPosition.deptId;
-            curData.deptName = editPosition.deptName
-            editPositionMap.delete(curData.id);
-            this.setState({data, editPosition});
-            message.info(msg);
-          } else {
-            message.error(msg);
+          switch (code) {
+            case 200:
+              curData.editable = null;
+              curData.name = editPosition.name;
+              curData.deptId = editPosition.deptId;
+              curData.deptName = editPosition.deptName
+              editPositionMap.delete(curData.id);
+              this.setState({data, editPosition});
+              message.info(msg);
+              break;
+            case 403:
+              message.warn(msg);
+              editPosition.deptId = undefined;
+              editPosition.deptName = undefined;
+              fetchUtil({
+                url: '/dept/findOptional',
+                callBack: result => {
+                  const {code, msg} = result;
+                  if (code === 200) {
+                    const {data: deptList} = result;
+                    this.setState({deptList});
+                  } else {
+                    message.error(msg);
+                  }
+                }
+              });
+              break;
+            default:
+              message.error(msg);
           }
         }
       });
     }
-    delete(id) {
+    delete(index) {
+      const {data} = this.state;
+      const curData = data[index];
       fetchUtil({
-        url: `/position/delete/${id}`,
+        url: `/position/delete/${curData.id}`,
         callBack: result => {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            const {positionQuery} = this.state;
-            positionQuery.current = 1;
-            this.setState({positionQuery});
-            this.fetchData();
+            curData.state = 0;
+            this.setState({data});
             return;
           }
           if (code === 403) {
             message.warn(msg);
+            return;
+          }
+          message.error(msg);
+        }
+      });
+    }
+    enable(index) {
+      const {data} = this.state;
+      const curData = data[index];
+      fetchUtil({
+        url: `/position/enable/${curData.id}`,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            message.info(msg);
+            curData.state = 1;
+            this.setState({data});
             return;
           }
           message.error(msg);
@@ -254,6 +310,112 @@ class Position extends Component {
       const curData = data[index];
       editPositionMap.delete(curData.id);
       this.setState({data, editPositionMap});
+    }
+    renderModal() {
+      const {modal} = this.state;
+      modal.onCancel = () => {
+        this.setState({modal:{}});
+      };
+      if(!modal.okText){
+        modal.okText = '确定';
+      }
+      if(!modal.cancelText){
+        modal.cancelText = '取消';
+      }
+      const {type} = modal;
+      switch (type) {
+        case 'insertPosition':
+          const {insertPosition, deptList} = this.state;
+          let {name, deptId} = insertPosition;
+          modal.content = <div>
+            <Row type="flex" align="middle" className="marginB-10">
+                <Col span={6} className="txt-right">
+                  <label>职位名称</label>
+                </Col>
+                <Col span={12} offset={1}>
+                  <Input value={name} onChange={(e) => {
+                    name = e.target.value.trim();
+                    insertPosition.name = name;
+                    this.setState({insertPosition});
+                  }}/>
+                </Col>
+            </Row>
+            <Row type="flex" align="middle" className="marginB-10">
+              <Col span={6} className="txt-right">
+                <label>所属部门</label>
+              </Col>
+              <Col span={12} offset={1}>
+              <Select className="width-per-100" value={deptId} onChange={(deptId) => {
+                insertPosition.deptId = deptId;
+                this.setState({insertPosition});
+              }} placeholder="请选择" allowClear>
+                {
+                  deptList.map((deptItem) => {
+                    const {
+                      id,
+                      name
+                    } = deptItem;
+                    return <Option key={id} value={`${id}`}>{name}</Option>
+                  })
+                }
+              </Select>
+              </Col>
+            </Row>
+          </div>;
+          break;
+        default:
+          modal.content = null;
+      }
+      return <Modal {...modal}>{modal.content}</Modal>
+    }
+    renderInsert() {
+      const {insertPosition} = this.state;
+      const modal =  {
+        visible: true,
+        title: '新增职位',
+        type: 'insertPosition',
+        onOk: () => {
+          if (!insertPosition.name) {
+            message.warning('请输入职位名称！');
+            return;
+          }
+          fetchUtil({
+            url: '/position/insert',
+            method: 'POST',
+            body: insertPosition,
+            callBack: (result) => {
+              const {code, msg} = result;
+              switch (code) {
+                case 200:
+                  message.success(msg);
+                  const {pagination} = this.state;
+                  pagination.current = 1;
+                  this.setState({pagination, modal: {}, insertPosition: {}});
+                  this.fetchData();
+                  break;
+                case 403:
+                  message.warn(msg);
+                  fetchUtil({
+                    url: '/dept/findOptional',
+                    callBack: result => {
+                      const {code, msg} = result;
+                      if (code === 200) {
+                        const {data: deptList} = result;
+                        this.setState({deptList});
+                      } else {
+                        message.error(msg);
+                      }
+                    }
+                  });
+                  break;
+                default:
+                  message.error(result.msg);
+              }
+            }
+          });
+        }
+      };
+      this.setState({modal});
     }
     render() {
       const {
@@ -293,7 +455,7 @@ class Position extends Component {
                         id,
                         name
                       } = deptItem;
-                      return <Option value={deptItem.id}>{deptItem.name}</Option>
+                      return <Option key={id} value={`${id}`}>{name}</Option>
                     })
                   }
                 </Select>
@@ -312,13 +474,14 @@ class Position extends Component {
               </Col>
           </Row>
           <Row type="flex" justify="end" className="marginB-10">
-            <Col span={2} className="txt-center">
-              <Button type="primary" loading={this.state.loading} onClick= {() => {
+            <Col span={4} className="txt-center">
+              <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
                 const {pagination} = this.state;
                 pagination.current = 1;
-                pagination.pageSize = 5;
+                this.setState({pagination});
                 this.fetchData();
               }}>查询</Button>
+              <Button onClick={() => this.renderInsert()}>新增</Button>
             </Col>
           </Row>
           <Table className="marginT-10" columns={this.columns}
@@ -328,6 +491,7 @@ class Position extends Component {
             loading={this.state.loading}
             onChange={this.handleTableChange}
           />
+          {this.renderModal()}
         </div>
       );
   }
