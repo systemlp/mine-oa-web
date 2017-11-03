@@ -294,7 +294,7 @@ class position extends Component {
                         id,
                         name
                       } = deptItem;
-                      return <Option value={item.id}>{item.name}</Option>
+                      return <Option value={id}>{name}</Option>
                     });
                   }
                 </Select>
