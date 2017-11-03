@@ -456,7 +456,7 @@ class Position extends Component {
                         name
                       } = deptItem;
                       return <Option key={id} value={`${id}`}>{name}</Option>
-                    })
+                    });
                   }
                 </Select>
               </Col>
