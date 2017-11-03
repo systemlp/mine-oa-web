@@ -6,7 +6,7 @@ import {EditableInput, EditableSelect} from '../../../utils/components/editableI
 
 const Option = Select.Option;
 
-class position extends Component {
+class Position extends Component {
     state = {
         data: [],
         pagination: {
@@ -59,7 +59,7 @@ class position extends Component {
               const editPosition = editPositionMap.get(record.id);
               const data = {
                 value: record.editable ? editPosition.deptId : record.deptId,
-                text: record.editable ? editPosition.parentName : deptName
+                text: record.editable ? editPosition.deptName : deptName
               };
               let dataSource = [];
               if(record.editable){
@@ -215,10 +215,10 @@ class position extends Component {
           const {code, msg} = result;
           if (code === 200) {
             curData.editable = null;
-            curData.name = editDept.name;
-            curData.deptId = editDept.deptId;
-            curData.deptName = editDept.deptName
-            editPosition.delete(curData.id);
+            curData.name = editPosition.name;
+            curData.deptId = editPosition.deptId;
+            curData.deptName = editPosition.deptName
+            editPositionMap.delete(curData.id);
             this.setState({data, editPosition});
             message.info(msg);
           } else {
@@ -281,7 +281,6 @@ class position extends Component {
               </Col>
               <Col className="marginL-10" span={5}>
                 <Select className="width-per-100" value={deptId} onChange={(deptId) => {
-                  // positionQuery.deptId = value;
                   this.setState({
                     positionQuery: {
                       ...positionQuery,
@@ -294,8 +293,8 @@ class position extends Component {
                         id,
                         name
                       } = deptItem;
-                      return <Option value={item.id}>{item.name}</Option>
-                    });
+                      return <Option value={deptItem.id}>{deptItem.name}</Option>
+                    })
                   }
                 </Select>
               </Col>
@@ -334,4 +333,4 @@ class position extends Component {
   }
 }
 
-export default Dept;
+export default Position;
