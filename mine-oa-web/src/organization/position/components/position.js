@@ -256,7 +256,13 @@ class position extends Component {
       this.setState({data, editPositionMap});
     }
     render() {
-      const {positionQuery} = this.state;
+      const {
+        positionQuery,
+        deptList
+      } = this.state;
+      const {
+        deptId,
+      } = positionQuery;
       return (
         <div>
           <h2>职位管理</h2>
@@ -274,13 +280,20 @@ class position extends Component {
                 <label>所属部门</label>
               </Col>
               <Col className="marginL-10" span={5}>
-                <Select className="width-per-100" value={positionQuery.deptId} onChange={(value) => {
-                  positionQuery.deptId = value;
-                  this.setState({positionQuery});
+                <Select className="width-per-100" value={deptId} onChange={(deptId) => {
+                  // positionQuery.deptId = value;
+                  this.setState({
+                    positionQuery: {
+                      ...positionQuery,
+                      ...{ deptId }
+                    }});
                 }} placeholder="请选择" allowClear>
                   {
-                    const {deptList} = this.state;
-                    deptList.map(item => {
+                    deptList.map((deptItem) => {
+                      const {
+                        id,
+                        name
+                      } = deptItem;
                       return <Option value={item.id}>{item.name}</Option>
                     });
                   }
