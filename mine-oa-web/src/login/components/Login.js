@@ -2,7 +2,6 @@ import React, {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {connect} from 'react-redux';
 import {fetchUtil} from '../../utils/fetchUtil';
-// import { bindActionCreators } from 'redux';
 import {
     Row,
     Col,
@@ -12,7 +11,7 @@ import {
     Alert
 } from 'antd';
 import './login.css';
-import {login} from '../redux/actions/login';
+import {setUser} from '../../user/redux/actions/setUser';
 
 const errMsg = {
     nameEmpty: {
@@ -41,7 +40,7 @@ class Login extends Component {
     }
     handledLogin = () => {
         const {userName, password} = this.state;
-        const {onLogin} = this.props;
+        const {setUser} = this.props;
         if (!userName) {
             this.setState({errMsg: errMsg.nameEmpty});
         } else if (!password) {
@@ -56,25 +55,27 @@ class Login extends Component {
                 },
                 callBack: (result) => {
                     if (result.code === 200) {
-                        const {token} = result.data;
-                        sessionStorage.setItem('token', token);
-                        onLogin({userName, password});
-                        fetchUtil({
-                            url: '/user/getUserByToken',
-                            callBack: (result) => {
-                                if (result.code === 200) {
-                                    sessionStorage.setItem('user', JSON.stringify(result.data));
-                                    browserHistory.push('/');
-                                }
-                            }
-                        });
+                      const {token} = result.data;
+                      sessionStorage.setItem('token', token);
+                      fetchUtil({
+                        url: '/user/getUserByToken',
+                        callBack: (result) => {
+                          const {code, data: user} = result;
+                          if (code === 200) {
+                            // 将用户信息存在redux（页面刷新后会丢失）和浏览器缓存中
+                            setUser(user);
+                            sessionStorage.setItem('user', JSON.stringify(user));
+                            browserHistory.push('/');
+                          }
+                        }
+                      });
                     } else {
-                        this.setState({
-                            errMsg: {
-                                title: 'error',
-                                msg: result.msg
-                            }
-                        });
+                      this.setState({
+                        errMsg: {
+                          title: 'error',
+                          msg: result.msg
+                        }
+                      });
                     }
                 }
             });
@@ -119,12 +120,10 @@ class Login extends Component {
     }
 }
 
-const mapStateToProps = (state) => ({user: state.login.user})
+const mapStateToProps = (state) => ({user: state.setUser.user})
 
 const mapDispatchToProps = (dispatch) => ({
-    onLogin: (user) => {
-        dispatch(login(user))
-    }
+    setUser: user => dispatch(setUser(user))
 })
 
 export default connect(mapStateToProps, mapDispatchToProps)(Login);

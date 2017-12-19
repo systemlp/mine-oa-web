@@ -131,8 +131,10 @@ class App extends Component {
       this.setState({modal});
     }
     render() {
-        // const {user} = this.props;
-        let user = JSON.parse(sessionStorage.getItem('user'));
+        let {user} = this.props;
+        if(!user || !user.id){
+          user = JSON.parse(sessionStorage.getItem('user'));
+        }
         user = user || {};
         const menu = (
           <Menu className="user-menu" onClick={(item, key, keyPath) => {
@@ -245,7 +247,7 @@ class App extends Component {
 
 const mapStateToProps = state => {
   return {
-    user: state.login.user
+    user: state.setUser.user
   }
 }
 

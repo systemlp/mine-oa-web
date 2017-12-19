@@ -8,3 +8,10 @@
     display: inline-block;
     min-width: 78px;
 }
+
+.userData .userImg {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+}

@@ -3,19 +3,14 @@ import React, {Component} from 'react';
 import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
+import {defaultPagination} from '../../../constants/oaConstants';
 
 const Option = Select.Option;
 
 class Position extends Component {
     state = {
         data: [],
-        pagination: {
-          showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50'],
-          showTotal: (total, range) => {
-            return `共${total}条 / 当前${range.join('至')}条`;
-          }
-        },
+        pagination: defaultPagination,
         loading: false,
         positionQuery: {
           pageSize: 5,
@@ -456,7 +451,7 @@ class Position extends Component {
                         name
                       } = deptItem;
                       return <Option key={id} value={`${id}`}>{name}</Option>
-                    });
+                    })
                   }
                 </Select>
               </Col>
