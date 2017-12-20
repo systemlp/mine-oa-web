@@ -17,6 +17,7 @@ import Login from './login/components/Login';
 import UserData from './user/components/userData';
 import Dept from './organization/dept/components/dept';
 import Position from './organization/position/components/position';
+import Employee from './organization/employee/components/employee';
 // import registerServiceWorker from './registerServiceWorker';
 
 const store = createStore(reducers);
@@ -37,6 +38,7 @@ render((
                 <Route path="userData" component={UserData}/>
                 <Route path="dept" component={Dept}/>
                 <Route path="position" component={Position}/>
+                <Route path="employee" component={Employee}/>
             </Route>
         </Router>
     </Provider>
