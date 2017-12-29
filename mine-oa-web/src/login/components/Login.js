@@ -30,58 +30,63 @@ const errMsg = {
 
 class Login extends Component {
     constructor(props) {
-        super(props);
-        this.state = {
-            userName: '',
-            password: '',
-            errMsg: null,
-            // user: {},
-        }
+      super(props);
+      this.state = {
+        userName: '',
+        password: '',
+        errMsg: null,
+        loading: false
+        // user: {},
+      }
     }
     handledLogin = () => {
-        const {userName, password} = this.state;
-        const {setUser} = this.props;
-        if (!userName) {
-            this.setState({errMsg: errMsg.nameEmpty});
-        } else if (!password) {
-            this.setState({errMsg: errMsg.passwordEmpty});
-        } else {
-            fetchUtil({
-                url: '/user/login',
-                method: 'post',
-                body: {
-                    userName,
-                    password
-                },
+      const {userName, password} = this.state;
+      const {setUser} = this.props;
+      if (!userName) {
+        this.setState({errMsg: errMsg.nameEmpty});
+      } else if (!password) {
+        this.setState({errMsg: errMsg.passwordEmpty});
+      } else {
+        this.setState({loading: true});
+        fetchUtil({
+          url: '/user/login',
+          method: 'post',
+          body: {
+            userName,
+            password
+          },
+          callBack: (result) => {
+            if (result.code === 200) {
+              const {token} = result.data;
+              sessionStorage.setItem('token', token);
+              fetchUtil({
+                url: '/user/getUserByToken',
                 callBack: (result) => {
-                    if (result.code === 200) {
-                      const {token} = result.data;
-                      sessionStorage.setItem('token', token);
-                      fetchUtil({
-                        url: '/user/getUserByToken',
-                        callBack: (result) => {
-                          const {code, data: user} = result;
-                          if (code === 200) {
-                            // 将用户信息存在redux（页面刷新后会丢失）和浏览器缓存中
-                            setUser(user);
-                            sessionStorage.setItem('user', JSON.stringify(user));
-                            browserHistory.push('/');
-                          }
-                        }
-                      });
-                    } else {
-                      this.setState({
-                        errMsg: {
-                          title: 'error',
-                          msg: result.msg
-                        }
-                      });
-                    }
+                  const {code, data: user} = result;
+                  if (code === 200) {
+                    // 将用户信息存在redux（页面刷新后会丢失）和浏览器缓存中
+                    setUser(user);
+                    sessionStorage.setItem('user', JSON.stringify(user));
+                    this.setState({loading: false});
+                    browserHistory.push('/');
+                  }
                 }
-            });
-        }
+              });
+            } else {
+              this.setState({
+                errMsg: {
+                  title: 'error',
+                  msg: result.msg
+                }
+              });
+              this.setState({loading: false});
+            }
+          }
+        });
+      }
     }
     render() {
+      const {loading} = this.state;
         return (
             <div className="login-container">
                 <div className="image3"></div>
@@ -111,7 +116,7 @@ class Login extends Component {
                             }} prefix={<Icon type = "lock" style = {{fontSize: 16}}/>} placeholder="密 码"/>
                         </Col>
                     </Row>
-                    <Button size="large" type="primary" className="login-form-button" onClick={this.handledLogin}>
+                    <Button size="large" type="primary" className="login-form-button" loading={loading} onClick={this.handledLogin}>
                         登 录
                     </Button>
                 </div>

@@ -2,7 +2,7 @@ import 'antd/dist/antd.css';
 import React, {Component} from 'react';
 import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
-import {EditableInput, EditableSelect} from '../../../utils/components/editableInput';
+import {EditableInput} from '../../../utils/components/editableInput';
 import {defaultPagination} from '../../../constants/oaConstants';
 
 const Option = Select.Option;
@@ -17,7 +17,6 @@ class Position extends Component {
           current: 1
         },
         editPositionMap: new Map(),
-        deptList: [],
         modal: {},
         insertPosition: {}
     };
@@ -33,49 +32,13 @@ class Position extends Component {
             dataIndex: 'name',
             key: 'name',
             className: 'txt-center',
-            width: '25%',
+            width: '35%',
             render: (name, record, index) => {
               const {editPositionMap} = this.state;
               const editPosition = editPositionMap.get(record.id);
               return (
                 <EditableInput value={record.editable ? editPosition.name : name} editable={record.editable} onChange={newName => {
                   editPosition.name = newName;
-                  editPositionMap.set(editPosition.id, editPosition);
-                  this.setState({editPositionMap});
-                }} />
-              );
-            }
-        }, {
-            title: '所属部门',
-            dataIndex: 'deptName',
-            key: 'deptName',
-            className: 'txt-center',
-            width: '25%',
-            render: (deptName, record, index) => {
-              const {editPositionMap, deptList} = this.state;
-              const editPosition = editPositionMap.get(record.id);
-              const data = {
-                value: record.editable ? editPosition.deptId : record.deptId,
-                text: record.editable ? editPosition.deptName : deptName
-              };
-              let dataSource = [];
-              if(record.editable){
-                deptList.map(item => {
-                  return dataSource.push({
-                    value: item.id,
-                    text: item.name
-                  });
-                });
-              }
-              return (
-                <EditableSelect data={data} dataSource={dataSource} editable={record.editable} onChange={result => {
-                  if (result) {
-                    editPosition.deptId = result[0];
-                    editPosition.deptName = result[1];
-                  } else {
-                    editPosition.deptId = undefined;
-                    editPosition.deptName = undefined;
-                  }
                   editPositionMap.set(editPosition.id, editPosition);
                   this.setState({editPositionMap});
                 }} />
@@ -146,18 +109,6 @@ class Position extends Component {
     ];
     componentWillMount() {
       this.fetchData();
-      fetchUtil({
-        url: '/dept/findOptional',
-        callBack: result => {
-          const {code, msg} = result;
-          if (code === 200) {
-            const {data: deptList} = result;
-            this.setState({deptList});
-          } else {
-            message.error(msg);
-          }
-        }
-      });
     }
     fetchData() {
       this.setState({ loading: true });
@@ -190,25 +141,11 @@ class Position extends Component {
       this.fetchData();
     }
     edit(index) {
-      fetchUtil({
-        url: '/dept/findOptional',
-        callBack: result => {
-          const {code, msg} = result;
-          if (code === 200) {
-            const {data: deptList} = result;
-            this.setState({deptList});
-          } else {
-            message.error(msg);
-          }
-        }
-      });
       const {data, editPositionMap} = this.state;
       const curData = data[index];
       const editPosition = {
         id: curData.id,
-        name: curData.name,
-        deptId: curData.deptId,
-        deptName: curData.deptName
+        name: curData.name
       };
       curData.editable = true;
       editPositionMap.set(editPosition.id, editPosition);
@@ -218,7 +155,7 @@ class Position extends Component {
       const {data, editPositionMap} = this.state;
       const curData = data[index];
       const editPosition = editPositionMap.get(curData.id);
-      if (curData.name === editPosition.name && curData.deptId === editPosition.deptId) {
+      if (curData.name === editPosition.name) {
         this.cancelEdit(index);
         return;
       }
@@ -232,28 +169,12 @@ class Position extends Component {
             case 200:
               curData.editable = null;
               curData.name = editPosition.name;
-              curData.deptId = editPosition.deptId;
-              curData.deptName = editPosition.deptName
               editPositionMap.delete(curData.id);
               this.setState({data, editPosition});
               message.info(msg);
               break;
             case 403:
               message.warn(msg);
-              editPosition.deptId = undefined;
-              editPosition.deptName = undefined;
-              fetchUtil({
-                url: '/dept/findOptional',
-                callBack: result => {
-                  const {code, msg} = result;
-                  if (code === 200) {
-                    const {data: deptList} = result;
-                    this.setState({deptList});
-                  } else {
-                    message.error(msg);
-                  }
-                }
-              });
               break;
             default:
               message.error(msg);
@@ -320,8 +241,8 @@ class Position extends Component {
       const {type} = modal;
       switch (type) {
         case 'insertPosition':
-          const {insertPosition, deptList} = this.state;
-          let {name, deptId} = insertPosition;
+          const {insertPosition} = this.state;
+          let {name} = insertPosition;
           modal.content = <div>
             <Row type="flex" align="middle" className="marginB-10">
                 <Col span={6} className="txt-right">
@@ -334,27 +255,6 @@ class Position extends Component {
                     this.setState({insertPosition});
                   }}/>
                 </Col>
-            </Row>
-            <Row type="flex" align="middle" className="marginB-10">
-              <Col span={6} className="txt-right">
-                <label>所属部门</label>
-              </Col>
-              <Col span={12} offset={1}>
-              <Select className="width-per-100" value={deptId} onChange={(deptId) => {
-                insertPosition.deptId = deptId;
-                this.setState({insertPosition});
-              }} placeholder="请选择" allowClear>
-                {
-                  deptList.map((deptItem) => {
-                    const {
-                      id,
-                      name
-                    } = deptItem;
-                    return <Option key={id} value={`${id}`}>{name}</Option>
-                  })
-                }
-              </Select>
-              </Col>
             </Row>
           </div>;
           break;
@@ -390,18 +290,6 @@ class Position extends Component {
                   break;
                 case 403:
                   message.warn(msg);
-                  fetchUtil({
-                    url: '/dept/findOptional',
-                    callBack: result => {
-                      const {code, msg} = result;
-                      if (code === 200) {
-                        const {data: deptList} = result;
-                        this.setState({deptList});
-                      } else {
-                        message.error(msg);
-                      }
-                    }
-                  });
                   break;
                 default:
                   message.error(result.msg);
@@ -415,11 +303,7 @@ class Position extends Component {
     render() {
       const {
         positionQuery,
-        deptList
       } = this.state;
-      const {
-        deptId,
-      } = positionQuery;
       return (
         <div>
           <h2>职位管理</h2>
@@ -434,28 +318,6 @@ class Position extends Component {
                 }}/>
               </Col>
               <Col span={2} offset={1} className="txt-right">
-                <label>所属部门</label>
-              </Col>
-              <Col className="marginL-10" span={5}>
-                <Select className="width-per-100" value={deptId} onChange={(deptId) => {
-                  this.setState({
-                    positionQuery: {
-                      ...positionQuery,
-                      ...{ deptId }
-                    }});
-                }} placeholder="请选择" allowClear>
-                  {
-                    deptList.map((deptItem) => {
-                      const {
-                        id,
-                        name
-                      } = deptItem;
-                      return <Option key={id} value={`${id}`}>{name}</Option>
-                    })
-                  }
-                </Select>
-              </Col>
-              <Col span={2} offset={1} className="txt-right">
                 <label>状 态</label>
               </Col>
               <Col className="marginL-10" span={5}>
@@ -467,17 +329,15 @@ class Position extends Component {
                   <Option value="0">删除</Option>
                 </Select>
               </Col>
-          </Row>
-          <Row type="flex" justify="end" className="marginB-10">
-            <Col span={4} className="txt-center">
-              <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
-                const {pagination} = this.state;
-                pagination.current = 1;
-                this.setState({pagination});
-                this.fetchData();
-              }}>查询</Button>
-              <Button onClick={() => this.renderInsert()}>新增</Button>
-            </Col>
+              <Col span={8} className="txt-right">
+                <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
+                  const {pagination} = this.state;
+                  pagination.current = 1;
+                  this.setState({pagination});
+                  this.fetchData();
+                }}>查询</Button>
+                <Button onClick={() => this.renderInsert()}>新增</Button>
+              </Col>
           </Row>
           <Table className="marginT-10" columns={this.columns}
             rowKey={record => record.id}

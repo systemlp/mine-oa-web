@@ -2,7 +2,8 @@ import 'antd/dist/antd.css';
 import React, {Component} from 'react';
 import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
-import {defaultPagination} from '../../../constants/oaConstants';
+import {defaultPagination, OaReg} from '../../../constants/oaConstants';
+import NewEmployee from './newEmployee';
 
 const Option = Select.Option;
 
@@ -18,7 +19,12 @@ class Employee extends Component {
         editDeptMap: new Map(),
         parentDeptMap: new Map(),
         modal: {},
-        insertDept: {},
+        newEmp: {
+          sex: '2',
+          cardType: '1'
+        },
+        empInfo: {},
+        modifyEmp: {},
         deptList: [],
         posiList: []
     };
@@ -30,7 +36,7 @@ class Employee extends Component {
             className: 'txt-center',
             width: '8%'
         }, {
-            title: '账号',
+            title: '用户名',
             dataIndex: 'userName',
             key: 'userName',
             className: 'txt-center',
@@ -70,7 +76,7 @@ class Employee extends Component {
             className: 'txt-center',
             width: '12%'
         }, {
-            title: '部门',
+            title: '所属部门',
             dataIndex: 'positionName',
             key: 'positionName',
             className: 'txt-center',
@@ -98,10 +104,12 @@ class Employee extends Component {
             render: (id, record, index) => {
               const {state} = record;
               return <div>
+                <a onClick = {() => this.renderSee(record)}>查看</a>
+                &nbsp;&nbsp;&nbsp;&nbsp;
                 {
                   state === 1 ?
                   <span>
-                    <a onClick = {() => this.edit(index)}>编 辑</a>
+                    <a onClick = {() => this.renderModify(record)}>编 辑</a>
                     &nbsp;&nbsp;&nbsp;&nbsp;
                     <Popconfirm title="确定离职吗?" onConfirm={() => this.delete(index)}>
                       <a>离 职</a>
@@ -119,6 +127,32 @@ class Employee extends Component {
     ];
     componentWillMount() {
       this.fetchData();
+      this.fetchDeptList();
+      this.fetchPosiList();
+    }
+    fetchData() {
+      this.setState({ loading: true });
+      fetchUtil({
+        url: '/employee/findPageByParam',
+        method: 'post',
+        body: this.state.empQuery,
+        callBack: (result) => {
+          this.setState({loading: false});
+          if (result.code === 200) {
+            const {data} = result;
+            const {pagination} = this.state;
+            pagination.total = data.total;
+            this.setState({
+              data: data.list,
+              pagination
+            });
+          } else {
+            message.error(result.msg);
+          }
+        }
+      });
+    }
+    fetchDeptList() {
       fetchUtil({
         url: '/dept/findOptional',
         callBack: result => {
@@ -131,35 +165,12 @@ class Employee extends Component {
           }
         }
       });
-      this.fetchPosiList();
     }
-    fetchData() {
-      this.setState({ loading: true });
-      fetchUtil({
-        url: '/employee/findPageByParam',
-        method: 'post',
-        body: this.state.empQuery,
-        callBack: (result) => {
-          if (result.code === 200) {
-            const {data} = result;
-            const {pagination} = this.state;
-            pagination.total = data.total;
-            this.setState({
-              loading: false,
-              data: data.list,
-              pagination
-            });
-          } else {
-            message.error(result.msg);
-          }
-        }
-      });
-    }
-    fetchPosiList(deptId) {
+    fetchPosiList() {
       fetchUtil({
         url: '/position/findPageByParam',
         method: 'post',
-        body: {pageSize: 0, state:1, deptId},
+        body: {pageSize: 0, state:1},
         callBack: result => {
           const {code, msg, data} = result;
           if (code === 200) {
@@ -177,9 +188,6 @@ class Employee extends Component {
       empQuery.pageSize = pagination.pageSize;
       this.setState({pagination, empQuery});
       this.fetchData();
-    }
-    edit(index) {
-      alert('打开编辑窗口');
     }
     save(index) {
       const {data, editDeptMap} = this.state;
@@ -275,114 +283,155 @@ class Employee extends Component {
       this.setState({data, editDeptMap});
     }
     renderModal() {
-      const {modal} = this.state;
+      const {modal, deptList, posiList} = this.state;
       modal.onCancel = () => {
         this.setState({modal:{}});
       };
-      if(!modal.okText){
-        modal.okText = '确定';
-      }
-      if(!modal.cancelText){
-        modal.cancelText = '取消';
-      }
       const {type} = modal;
       switch (type) {
-        case 'insertDept':
-          const {insertDept, deptList} = this.state;
-          let {name, parentId} = insertDept;
-          modal.content = <div>
-            <Row type="flex" align="middle" className="marginB-10">
-                <Col span={6} className="txt-right">
-                  <label>部门名称</label>
-                </Col>
-                <Col span={12} offset={1}>
-                  <Input value={name} onChange={(e) => {
-                    name = e.target.value.trim();
-                    insertDept.name = name;
-                    this.setState({insertDept});
-                  }}/>
-                </Col>
-            </Row>
-            <Row type="flex" align="middle" className="marginB-10">
-              <Col span={6} className="txt-right">
-                <label>父级部门</label>
-              </Col>
-              <Col span={12} offset={1}>
-              <Select className="width-per-100" value={parentId} onChange={(parentId) => {
-                insertDept.parentId = parentId;
-                this.setState({insertDept});
-              }} placeholder="请选择" allowClear>
-                {
-                  deptList.map((deptItem) => {
-                    const {
-                      id,
-                      name
-                    } = deptItem;
-                    return <Option key={id} value={`${id}`}>{name}</Option>
-                  })
-                }
-              </Select>
-              </Col>
-            </Row>
-          </div>;
+        case 'newEmp':
+          const {newEmp} = this.state;
+          modal.content = <NewEmployee newEmp={newEmp} deptList={deptList} posiList={posiList} modifyNewEmp={ newEmp => this.setState({newEmp}) }/>;
           break;
+        case 'seeEmp':
+            const {empInfo} = this.state;
+            modal.content = <NewEmployee newEmp={empInfo} deptList={deptList} posiList={posiList} disabled={true} />;
+            break;
+        case 'modifyEmp':
+            const {modifyEmp} = this.state;
+            modal.content = <NewEmployee newEmp={modifyEmp} deptList={deptList} posiList={posiList} modifyNewEmp={ modifyEmp => this.setState({modifyEmp}) }/>;
+            break;
         default:
           modal.content = null;
       }
       return <Modal {...modal}>{modal.content}</Modal>
     }
+    checkEmp(emp) {
+      const {userName, email, name, sex, cardType, cardNo, mobile, address, entryDate, deptId, positionId} = emp;
+      if(!userName || !email || !name || sex===undefined || cardType===undefined || !cardNo
+         || !mobile || !entryDate || deptId===undefined || positionId===undefined) {
+        message.warn('必填项未填写');
+        return false;
+      }
+      if(!OaReg.testUserName(userName)) {
+        message.warn('用户名只能包含最多20个字母、数字及-');
+        return false;
+      }
+      if(!OaReg.testEmail(email)) {
+        message.warn('邮箱格式错误');
+        return false;
+      }
+      if(!OaReg.testName(name)) {
+        message.warn('姓名只能包含最多30个中文及字母');
+        return false;
+      }
+      if(!OaReg.testCardNo(cardNo)) {
+        message.warn('证件号格式错误');
+        return false;
+      }
+      if(!OaReg.testMobile(mobile)) {
+        message.warn('手机号格式错误');
+        return false;
+      }
+      if(!address && address.length>100) {
+        message.warn('地址只能包含最多100个字符');
+        return false;
+      }
+      return true;
+    }
+    insertEmp(newEmp) {
+      if(!this.checkEmp(newEmp)) return;
+      fetchUtil({
+        url: '/employee/insert',
+        method: 'post',
+        body: newEmp,
+        callBack: result => {
+          const {code, msg} = result;
+          switch (code) {
+            case 200:
+              message.success(msg);
+              const {pagination} = this.state;
+              pagination.current = 1;
+              this.setState({pagination, modal: {}, newEmp: {}});
+              this.fetchData();
+              break;
+            case 403:
+              message.warn(msg);
+              this.fetchDeptList();
+              this.fetchPosiList();
+              break;
+            default:
+              message.error(result.msg);
+          }
+        }
+      });
+    }
+    modifyEmp(modifyEmp) {
+      if(!this.checkEmp(modifyEmp)) return;
+      fetchUtil({
+        url: '/employee/modify',
+        method: 'post',
+        body: modifyEmp,
+        callBack: result => {
+          const {code, msg} = result;
+          switch (code) {
+            case 200:
+              message.success(msg);
+              const {pagination} = this.state;
+              pagination.current = 1;
+              this.setState({pagination, modal: {}, modifyEmp: {}});
+              this.fetchData();
+              break;
+            case 403:
+              message.warn(msg);
+              this.fetchDeptList();
+              this.fetchPosiList();
+              break;
+            default:
+              message.error(result.msg);
+          }
+        }
+      });
+    }
     renderInsert() {
-      const {insertDept} = this.state;
       const modal =  {
         visible: true,
-        title: '新增部门',
-        type: 'insertDept',
+        title: '新增员工',
+        type: 'newEmp',
+        width: '920px',
         onOk: () => {
-          if (!insertDept.name) {
-            message.warning('请输入部门名称！');
-            return;
-          }
-          fetchUtil({
-            url: '/dept/insert',
-            method: 'POST',
-            body: insertDept,
-            callBack: (result) => {
-              const {code, msg} = result;
-              switch (code) {
-                case 200:
-                  message.success(msg);
-                  const {pagination} = this.state;
-                  pagination.current = 1;
-                  this.setState({pagination, modal: {}, insertDept: {}});
-                  this.fetchData();
-                  break;
-                case 403:
-                  message.warn(msg);
-                  fetchUtil({
-                    url: '/dept/findOptional',
-                    callBack: result => {
-                      const {code, msg} = result;
-                      if (code === 200) {
-                        const {data: deptList} = result;
-                        this.setState({deptList});
-                      } else {
-                        message.error(msg);
-                      }
-                    }
-                  });
-                  break;
-                default:
-                  message.error(result.msg);
-              }
-            }
-          });
+          const {newEmp} = this.state;
+          this.insertEmp(newEmp);
         }
       };
       this.setState({modal});
     }
+    renderSee(empInfo) {
+      const modal =  {
+        visible: true,
+        title: '员工信息',
+        type: 'seeEmp',
+        width: '920px',
+        footer: null
+      };
+      this.setState({modal, empInfo});
+    }
+    renderModify(modifyEmp) {
+      modifyEmp = Object.assign({}, modifyEmp);
+      const modal =  {
+        visible: true,
+        title: '编辑员工信息',
+        type: 'modifyEmp',
+        width: '920px',
+        onOk: () => {
+          const {modifyEmp} = this.state;
+          this.modifyEmp(modifyEmp);
+        }
+      };
+      this.setState({modal, modifyEmp});
+    }
     render() {
       const { empQuery, deptList, posiList } = this.state;
-      const { userName, name, mobile, deptId, positionId } = empQuery;
       return (
         <div>
           <h2>员工管理</h2>
@@ -391,7 +440,7 @@ class Employee extends Component {
                 <label>用户名</label>
               </Col>
               <Col className="marginL-10" span={5}>
-                <Input value={userName} onChange={(e) => {
+                <Input onChange={(e) => {
                   empQuery.userName = e.target.value.trim();
                   this.setState({empQuery});
                 }}/>
@@ -400,7 +449,7 @@ class Employee extends Component {
                 <label>姓 名</label>
               </Col>
               <Col className="marginL-10" span={5}>
-                <Input value={name} onChange={(e) => {
+                <Input onChange={(e) => {
                   empQuery.name = e.target.value.trim();
                   this.setState({empQuery});
                 }}/>
@@ -409,25 +458,23 @@ class Employee extends Component {
                 <label>手机号</label>
               </Col>
               <Col className="marginL-10" span={5}>
-                <Input value={mobile} onChange={(e) => {
+                <Input onChange={(e) => {
                   empQuery.mobile = e.target.value.trim();
                   this.setState({empQuery});
                 }}/>
               </Col>
-
           </Row>
           <Row type="flex" align="middle" className="marginB-10">
             <Col span={2} className="txt-right">
               <label>所属部门</label>
             </Col>
             <Col className="marginL-10" span={5}>
-              <Select className="width-per-100" value={deptId} onChange={(deptId) => {
+              <Select className="width-per-100" onChange={(deptId) => {
                 this.setState({
                   empQuery: {
                     ...empQuery,
                     ...{ deptId }
                   }});
-                  this.fetchPosiList(deptId);
               }} placeholder="请选择" allowClear>
                 {
                   deptList.map((deptItem) => {
@@ -441,7 +488,7 @@ class Employee extends Component {
               <label>职 位</label>
             </Col>
             <Col className="marginL-10" span={5}>
-              <Select className="width-per-100" value={positionId} onChange={(positionId) => {
+              <Select className="width-per-100" onChange={(positionId) => {
                 this.setState({
                   empQuery: {
                     ...empQuery,
@@ -460,7 +507,7 @@ class Employee extends Component {
               <label>状 态</label>
             </Col>
             <Col className="marginL-10" span={5}>
-              <Select className="width-per-100" value={empQuery.state} onChange={(value) => {
+              <Select className="width-per-100" onChange={(value) => {
                 empQuery.state = value;
                 this.setState({empQuery});
               }} placeholder="请选择" allowClear>
