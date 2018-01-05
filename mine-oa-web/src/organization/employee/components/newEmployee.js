@@ -13,12 +13,6 @@ class NewEmployee extends Component {
     !!entryDate && (entryDate = moment(entryDate));
     deptId && (deptId=`${deptId}`);
     positionId && (positionId=`${positionId}`);
-    if (!disabled && !deptId && deptList && deptList.length > 0) {
-      deptId = `${deptList[0].id}`;
-    }
-    if (!disabled && !positionId && posiList  && posiList.length > 0) {
-      positionId = `${posiList[0].id}`;
-    }
     const requiredClass = disabled ? '' : 'ant-form-item-required';
     return (
       <div>

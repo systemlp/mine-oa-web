@@ -19,10 +19,7 @@ class Employee extends Component {
         editDeptMap: new Map(),
         parentDeptMap: new Map(),
         modal: {},
-        newEmp: {
-          sex: '2',
-          cardType: '1'
-        },
+        newEmp: {},
         empInfo: {},
         modifyEmp: {},
         deptList: [],
@@ -111,15 +108,12 @@ class Employee extends Component {
                   <span>
                     <a onClick = {() => this.renderModify(record)}>编 辑</a>
                     &nbsp;&nbsp;&nbsp;&nbsp;
-                    <Popconfirm title="确定离职吗?" onConfirm={() => this.delete(index)}>
+                    <Popconfirm title="确定离职吗?" onConfirm={() => this.leave(id)}>
                       <a>离 职</a>
                     </Popconfirm>
                   </span>
                   :
-                  <span>
-                    &nbsp;&nbsp;&nbsp;&nbsp;
-                      <a onClick={() => this.enable(index)}>恢 复</a>
-                  </span>
+                  <a onClick={() => this.enable(id)}>恢 复</a>
                 }
               </div>;
             }
@@ -151,6 +145,12 @@ class Employee extends Component {
           }
         }
       });
+    }
+    fetchFirstPage() {
+      const {empQuery} = this.state;
+      empQuery.current = 1;
+      this.setState({empQuery});
+      this.fetchData();
     }
     fetchDeptList() {
       fetchUtil({
@@ -189,86 +189,28 @@ class Employee extends Component {
       this.setState({pagination, empQuery});
       this.fetchData();
     }
-    save(index) {
-      const {data, editDeptMap} = this.state;
-      const curData = data[index];
-      const editDept = editDeptMap.get(curData.id);
-      if (curData.name === editDept.name && curData.parentId === editDept.parentId) {
-        this.cancelEdit(index);
-        return;
-      }
+    leave(id) {
       fetchUtil({
-        url: '/dept/merge',
-        method: 'post',
-        body: editDept,
-        callBack: result => {
-          const {code, msg} = result;
-          switch (code) {
-            case 200:
-              curData.editable = null;
-              curData.name = editDept.name;
-              curData.parentId = editDept.parentId;
-              curData.parentName = editDept.parentName
-              this.setState({data, editDeptMap: new Map()});
-              message.info(msg);
-              break;
-            case 403:
-              message.warn(msg);
-              editDept.parentId = undefined;
-              editDept.parentName = undefined;
-              this.setState({editDeptMap});
-              fetchUtil({
-                url: `/dept/findOptionalParent/${curData.id}`,
-                callBack: result => {
-                  const {code, msg} = result;
-                  if (code === 200) {
-                    const {parentDeptMap} = this.state;
-                    parentDeptMap.set(curData.id, result.data);
-                    this.setState({parentDeptMap});
-                  } else {
-                    message.error(msg);
-                  }
-                }
-              });
-              break;
-            default:
-              message.error(msg);
-          }
-        }
-      });
-    }
-    delete(index) {
-      const {data} = this.state;
-      const curData = data[index];
-      fetchUtil({
-        url: `/dept/delete/${curData.id}`,
+        url: `/employee/${id}/leave`,
         callBack: result => {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            curData.state = 0;
-            this.setState({data});
-            return;
-          }
-          if (code === 403) {
-            message.warn(msg);
+            this.fetchFirstPage();
             return;
           }
           message.error(msg);
         }
       });
     }
-    enable(index) {
-      const {data} = this.state;
-      const curData = data[index];
+    enable(id) {
       fetchUtil({
-        url: `/dept/enable/${curData.id}`,
+        url: `/employee/${id}/enable`,
         callBack: result => {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            curData.state = 1;
-            this.setState({data});
+            this.fetchFirstPage();
             return;
           }
           message.error(msg);
@@ -333,7 +275,7 @@ class Employee extends Component {
         message.warn('手机号格式错误');
         return false;
       }
-      if(!address && address.length>100) {
+      if(address && address.length>100) {
         message.warn('地址只能包含最多100个字符');
         return false;
       }
@@ -394,13 +336,22 @@ class Employee extends Component {
       });
     }
     renderInsert() {
+      const {newEmp, deptList, posiList} = this.state;
+      if (deptList && deptList.length > 0) {
+        newEmp.deptId = `${deptList[0].id}`;
+      }
+      if (posiList  && posiList.length > 0) {
+        newEmp.positionId = `${posiList[0].id}`;
+      }
+      newEmp.sex = 2;
+      newEmp.cardType = 1;
+      this.setState({newEmp});
       const modal =  {
         visible: true,
         title: '新增员工',
         type: 'newEmp',
         width: '920px',
         onOk: () => {
-          const {newEmp} = this.state;
           this.insertEmp(newEmp);
         }
       };

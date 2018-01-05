@@ -183,6 +183,12 @@ class Dept extends Component {
         }
       });
     }
+    fetchFirstPage() {
+      const {deptQuery} = this.state;
+      deptQuery.current = 1;
+      this.setState({deptQuery});
+      this.fetchData();
+    }
     handleTableChange = (pagination, filters, sorter) => {
       const {deptQuery} = this.state;
       deptQuery.current = pagination.current;
@@ -277,12 +283,7 @@ class Dept extends Component {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            // const {deptQuery} = this.state;
-            // deptQuery.current = 1;
-            // this.setState({deptQuery});
-            // this.fetchData();
-            curData.state = 0;
-            this.setState({data});
+            this.fetchFirstPage();
             return;
           }
           if (code === 403) {
@@ -302,8 +303,7 @@ class Dept extends Component {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            curData.state = 1;
-            this.setState({data});
+            this.fetchFirstPage();
             return;
           }
           message.error(msg);
@@ -394,10 +394,8 @@ class Dept extends Component {
               switch (code) {
                 case 200:
                   message.success(msg);
-                  const {pagination} = this.state;
-                  pagination.current = 1;
-                  this.setState({pagination, modal: {}, insertDept: {}});
-                  this.fetchData();
+                  this.setState({modal: {}, insertDept: {}});
+                  this.fetchFirstPage();
                   break;
                 case 403:
                   message.warn(msg);
@@ -462,10 +460,7 @@ class Dept extends Component {
           <Row type="flex" justify="end" className="marginB-10">
             <Col span={4} className="txt-center">
               <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
-                const {pagination} = this.state;
-                pagination.current = 1;
-                this.setState({pagination});
-                this.fetchData();
+                this.fetchFirstPage();
               }}>查询</Button>
               <Button onClick={() => this.renderInsert()}>新增</Button>
             </Col>

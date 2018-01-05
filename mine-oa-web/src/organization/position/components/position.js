@@ -191,8 +191,7 @@ class Position extends Component {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            curData.state = 0;
-            this.setState({data});
+            this.fetchFirstPage();
             return;
           }
           if (code === 403) {
@@ -212,8 +211,7 @@ class Position extends Component {
           const {code, msg} = result;
           if (code === 200) {
             message.info(msg);
-            curData.state = 1;
-            this.setState({data});
+            this.fetchFirstPage();
             return;
           }
           message.error(msg);
@@ -263,6 +261,12 @@ class Position extends Component {
       }
       return <Modal {...modal}>{modal.content}</Modal>
     }
+    fetchFirstPage() {
+      const {pagination} = this.state;
+      pagination.current = 1;
+      this.setState({pagination});
+      this.fetchData();
+    }
     renderInsert() {
       const {insertPosition} = this.state;
       const modal =  {
@@ -283,10 +287,8 @@ class Position extends Component {
               switch (code) {
                 case 200:
                   message.success(msg);
-                  const {pagination} = this.state;
-                  pagination.current = 1;
-                  this.setState({pagination, modal: {}, insertPosition: {}});
-                  this.fetchData();
+                  this.setState({modal: {}, insertPosition: {}});
+                  this.fetchFirstPage();
                   break;
                 case 403:
                   message.warn(msg);
@@ -331,10 +333,7 @@ class Position extends Component {
               </Col>
               <Col span={8} className="txt-right">
                 <Button type="primary" className="marginR-10" loading={this.state.loading} onClick= {() => {
-                  const {pagination} = this.state;
-                  pagination.current = 1;
-                  this.setState({pagination});
-                  this.fetchData();
+                  this.fetchFirstPage();
                 }}>查询</Button>
                 <Button onClick={() => this.renderInsert()}>新增</Button>
               </Col>
