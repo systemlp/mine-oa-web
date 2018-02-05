@@ -1,0 +1,17 @@
+.menuManage .treeBox,.menuManage .operateBox {
+  height: 500px;
+  border-radius: 5px;
+  border: 1px dashed #108ee9;
+  padding: 10px;
+}
+
+.menuManage .treeBox {
+  background: rgba(0,0,0,0.05);
+}
+
+.menuManage .treeBox .spinCont{
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

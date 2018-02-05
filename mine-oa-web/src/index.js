@@ -18,6 +18,7 @@ import UserData from './user/components/userData';
 import Dept from './organization/dept/components/dept';
 import Position from './organization/position/components/position';
 import Employee from './organization/employee/components/employee';
+import Menu from './organization/menu/components/menu';
 // import registerServiceWorker from './registerServiceWorker';
 
 const store = createStore(reducers);
@@ -28,6 +29,12 @@ render((
             <Route path="/login" component={Login}/>
             <Route path="/" component={App}>
                 <IndexRoute component={Home}/>
+                <Route path="org">
+                  <Route path="dept" component={Dept}/>
+                  <Route path="position" component={Position}/>
+                  <Route path="employee" component={Employee}/>
+                  <Route path="menu" component={Menu}/>
+                </Route>
                 <Route path="echarts" component={ECharts}/>
                 <Route path="button" component={_Button}/>
                 <Route path="icon" component={_Icon}/>
@@ -36,9 +43,6 @@ render((
                 <Route path="cascader" component={_Cascader}/>
                 <Route path="Hello" component={Hello}/>
                 <Route path="userData" component={UserData}/>
-                <Route path="dept" component={Dept}/>
-                <Route path="position" component={Position}/>
-                <Route path="employee" component={Employee}/>
             </Route>
         </Router>
     </Provider>
