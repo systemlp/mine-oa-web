@@ -54,8 +54,7 @@ class Menu extends Component {
       }
     });
   }
-  fetchOptionalParent() {
-    const {selectedKeys} = this.state;
+  fetchOptionalParent(selectedKeys) {
     if (!selectedKeys || !selectedKeys.length) {
       this.setState({optionalMenuList: []});
       return;
@@ -208,7 +207,8 @@ class Menu extends Component {
         default:
       }
     }
-    const {allMenuList} = this.state;
+    const {allMenuList, optionalMenuList} = this.state;
+    const menuList = type === 1 ? allMenuList : optionalMenuList;
     return (
       <div>
         <Row type="flex" align="middle" className="marginB-10">
@@ -221,7 +221,7 @@ class Menu extends Component {
               setMenu(data,type);
             }} placeholder="请选择" allowClear>
               {
-                allMenuList.map((parent) => {
+                menuList.map((parent) => {
                   if (type === 2 && parent.id === data.id) {
                     return false;
                   }
@@ -345,7 +345,8 @@ class Menu extends Component {
             });
           }}
           onSelect={ selectedKeys => {
-            this.setState({selectedKeys})
+            this.setState({selectedKeys});
+            this.fetchOptionalParent(selectedKeys);
             if (!selectedKeys.length) {
               this.setState({editMenu: {}});
               return;
