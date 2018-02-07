@@ -1,12 +1,13 @@
 import 'antd/dist/antd.css';
 import './menu.css';
 import React, {Component} from 'react';
-import {Row, Col, Tree, Icon, Spin, Button, Tabs , Input, InputNumber ,Tooltip , Select, message} from 'antd';
+import {Row, Col, Tree, Icon, Spin, Button, Tabs , Input, InputNumber ,Tooltip , Select, message, Popconfirm} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 
 const TreeNode = Tree.TreeNode;
 const TabPane = Tabs.TabPane;
 const Option = Select.Option;
+const Search = Input.Search;
 
 class Menu extends Component {
   state = {
@@ -15,7 +16,11 @@ class Menu extends Component {
     newMenu: {},
     editMenu: {},
     allMenuList: [],
-    optionalMenuList: []
+    optionalMenuList: [],
+    selectedKeys: [],
+    expandedKeys: [],
+    autoExpandParent: true,
+    searchValue: ''
   };
   componentWillMount() {
     this.fetchMenu();
@@ -49,27 +54,62 @@ class Menu extends Component {
       }
     });
   }
+  fetchOptionalParent() {
+    const {selectedKeys} = this.state;
+    if (!selectedKeys || !selectedKeys.length) {
+      this.setState({optionalMenuList: []});
+      return;
+    }
+    fetchUtil({
+      url: `/menu/${selectedKeys[0]}/findOptionalParent`,
+      callBack: result => {
+        const {code, msg} = result;
+        if (code === 200) {
+          const {data: optionalMenuList} = result;
+          this.setState({optionalMenuList});
+        } else {
+          message.error(msg);
+        }
+      }
+    });
+  }
   loop(data) {
+    const {searchValue} = this.state;
     return data.map( item => {
-      let {url, title, icon, children} = item;
+      let {id, title, icon, children} = item;
+      const index = title.indexOf(searchValue);
+      const beforeStr = title.substr(0, index);
+      const afterStr = title.substr(index + searchValue.length);
+      title = index > -1 ? (
+        <span>
+          {beforeStr}
+          <span style={{ color: '#f50' }}>{searchValue}</span>
+          {afterStr}
+        </span>
+      ) : <span>{title}</span>;
       if(icon) {
         title = (<span>
           <Icon type={item.icon} />
-          <span>{title}</span>
+          {title}
         </span>);
       }
       if(children) {
         return (
-          <TreeNode key={url} title={title}>
+          <TreeNode key={`${id}`} title={title}>
             {this.loop(children)}
           </TreeNode>
         );
       }
-      return <TreeNode key={url} title={title} />;
+      return <TreeNode key={`${id}`} title={title} />;
     });
   }
   insert() {
     const {newMenu} = this.state;
+    const {title, url, sort} = newMenu;
+    if (!title || !url || !sort) {
+      message.warn('必填项未填写');
+      return;
+    }
     fetchUtil({
       url: '/menu/insert',
       method: 'post',
@@ -92,8 +132,48 @@ class Menu extends Component {
       }
     });
   }
+  delete() {
+    const {editMenu, allMenuList} = this.state;
+    const {id} = editMenu;
+    if (!id) {
+      message.warn('请选择需要删除的菜单');
+      return;
+    }
+    if (allMenuList.find(item=>item&&item.parentId===id)) {
+      message.warn('该菜单下存在子菜单，无法删除');
+      return;
+    }
+    fetchUtil({
+      url: `/menu/${id}/delete`,
+      callBack: result => {
+        const {code, msg} = result;
+        switch (code) {
+          case 200:
+            message.success(msg);
+            this.componentWillMount();
+            this.setState({editMenu:{}, selectedKeys: []});
+            break;
+          case 403:
+            message.warn(msg);
+            this.componentWillMount();
+            break;
+          default:
+            message.error(msg);
+        }
+      }
+    });
+  }
   update() {
     const {editMenu} = this.state;
+    const {id, title, url, sort} = editMenu;
+    if (!id) {
+      message.warn('请选择需要编辑的菜单');
+      return;
+    }
+    if (!title || !url || !sort) {
+      message.warn('必填项未填写');
+      return;
+    }
     fetchUtil({
       url: '/menu/update',
       method: 'post',
@@ -104,7 +184,7 @@ class Menu extends Component {
           case 200:
             message.success(msg);
             this.componentWillMount();
-            this.setState({editMenu:{}});
+            this.setState({editMenu:{}, selectedKeys: []});
             break;
           case 403:
             message.warn(msg);
@@ -123,7 +203,7 @@ class Menu extends Component {
           this.setState({newMenu: menu})
           break;
         case 2:
-          this.setState({editMenu: menu})
+          this.setState({editMenu: menu, selectedKeys: []})
           break;
         default:
       }
@@ -136,7 +216,7 @@ class Menu extends Component {
             <label>父菜单</label>
           </Col>
           <Col className="marginL-10" span={10}>
-            <Select className="width-per-100" value={data.parentId} onChange={(parentId) => {
+            <Select className="width-per-100" value={`${data.parentId?data.parentId:''}`} onChange={(parentId) => {
               data.parentId = parentId;
               setMenu(data,type);
             }} placeholder="请选择" allowClear>
@@ -154,7 +234,7 @@ class Menu extends Component {
         </Row>
         <Row type="flex" align="middle" className="marginB-10">
           <Col span={3} className="txt-right">
-            <label>菜单名称</label>
+            <label className="ant-form-item-required">菜单名称</label>
           </Col>
           <Col className="marginL-10" span={10}>
             <Input value={data.title} maxLength="10" onChange={(e) => {
@@ -165,7 +245,7 @@ class Menu extends Component {
         </Row>
         <Row type="flex" align="middle" className="marginB-10">
           <Col span={3} className="txt-right">
-            <label>链接路径</label>
+            <label className="ant-form-item-required">链接路径</label>
           </Col>
           <Col className="marginL-10" span={10}>
             <Input value={data.url}
@@ -178,7 +258,7 @@ class Menu extends Component {
         </Row>
         <Row type="flex" align="middle" className="marginB-10">
           <Col span={3} className="txt-right">
-            <label>显示顺序</label>
+            <label className="ant-form-item-required">显示顺序</label>
           </Col>
           <Col className="marginL-10" span={10}>
             <InputNumber value={data.sort} min={1} max={9999} onChange={(e) => {
@@ -221,8 +301,83 @@ class Menu extends Component {
       </div>
     );
   }
+  getParentKey(menu, expandedKeys) {
+    const {menuList} = this.state;
+    for (let i = 0; i < menuList.length; i++) {
+      const temp = menuList[i];
+      if (temp.id === menu.parentId) {
+        if (expandedKeys.indexOf(temp.url) < 0) {
+          expandedKeys.push(`${temp.id}`);
+        }
+        if (temp.parentId) {
+          this.getParentKey(temp, expandedKeys);
+        }
+      }
+    }
+  }
+  renderTree() {
+    const {menuList, expandedKeys, allMenuList, autoExpandParent, selectedKeys} = this.state;
+    return (
+      <div>
+        <Search style={{ width: 260 }}
+          placeholder="搜索"
+          onChange={e => {
+          const searchValue = e.target.value.trim();
+          this.setState({searchValue});
+          if (!searchValue || !allMenuList || allMenuList.length < 1) {
+            return;
+          }
+          const menus = allMenuList.filter(item => {
+            return item && item.title.indexOf(searchValue) > -1
+          });
+          const expandedKeys = [];
+          menus.map(menu => this.getParentKey(menu,expandedKeys));
+          this.setState({expandedKeys, autoExpandParent: true});
+        }}/>
+        <Tree
+          selectedKeys={selectedKeys}
+          expandedKeys={expandedKeys}
+          autoExpandParent={autoExpandParent}
+          onExpand={keys => {
+            this.setState({
+              expandedKeys: keys,
+              autoExpandParent: false,
+            });
+          }}
+          onSelect={ selectedKeys => {
+            this.setState({selectedKeys})
+            if (!selectedKeys.length) {
+              this.setState({editMenu: {}});
+              return;
+            }
+            const editMenu = allMenuList.find(item => item && `${item.id}` === selectedKeys[0]);
+            this.setState({editMenu});
+          }}
+        >
+          {this.loop(menuList)}
+        </Tree>
+      </div>
+    );
+  }
+  renderDelete() {
+    const {editMenu, allMenuList} = this.state;
+    const {id} = editMenu;
+    if (!id || allMenuList.find(item=>item&&item.parentId===id)) {
+      return (
+        <Button type="danger" onClick={() => this.delete()}>删除</Button>
+      );
+    }
+    return (
+      <Popconfirm
+        title={<span>确定删除 <span style={{ color: '#f50' }}>{editMenu.title}</span> 菜单吗？</span>}
+        placement="bottomRight"
+        onConfirm={() => this.delete()}>
+        <Button type="danger">删除</Button>
+      </Popconfirm>
+    );
+  }
   render() {
-    const {loadMenu, menuList, newMenu, editMenu} = this.state;
+    const {loadMenu, newMenu, editMenu} = this.state;
     return (
       <div className='menuManage'>
         <h2>菜单管理</h2>
@@ -235,22 +390,18 @@ class Menu extends Component {
                     <Spin size="large" />
                   </div>
                 :
-                  <Tree>
-                    {this.loop(menuList)}
-                  </Tree>
+                  this.renderTree()
               }
             </div>
           </Col>
           <Col span={11}>
             <div className="operateBox">
-              <Tabs tabBarExtraContent={
-                <Button type="danger">删除</Button>
-              }>
+              <Tabs tabBarExtraContent={this.renderDelete()}>
                 <TabPane key="create" tab={<span><Icon type="plus-square-o" />新增</span>}>
                   {this.renderForm(newMenu)}
                 </TabPane>
                 <TabPane key="update" tab={<span><Icon type="edit" />编辑</span>}>
-                  {this.renderForm(editMenu)}
+                  {this.renderForm(editMenu, 2)}
                 </TabPane>
               </Tabs>
             </div>
