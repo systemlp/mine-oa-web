@@ -19,6 +19,7 @@ import Dept from './organization/dept/components/dept';
 import Position from './organization/position/components/position';
 import Employee from './organization/employee/components/employee';
 import Menu from './organization/menu/components/menu';
+import Role from './organization/role/components/role';
 // import registerServiceWorker from './registerServiceWorker';
 
 const store = createStore(reducers);
@@ -34,6 +35,7 @@ render((
                   <Route path="position" component={Position}/>
                   <Route path="employee" component={Employee}/>
                   <Route path="menu" component={Menu}/>
+                  <Route path="role" component={Role}/>
                 </Route>
                 <Route path="echarts" component={ECharts}/>
                 <Route path="button" component={_Button}/>

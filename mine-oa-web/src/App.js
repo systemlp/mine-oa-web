@@ -223,7 +223,7 @@ class App extends Component {
                     <Menu.Item key="/org/position">职位管理</Menu.Item>
                     <Menu.Item key="/org/employee">员工管理</Menu.Item>
                     <Menu.Item key="/org/menu">菜单管理</Menu.Item>
-                    <Menu.Item key="/role">角色管理</Menu.Item>
+                    <Menu.Item key="/org/role">角色管理</Menu.Item>
                   </SubMenu>
                   <SubMenu key="echarts" title={<span><Icon type="github"/><span>Charts</span></span>}>
                     <Menu.Item key="/echarts">ECharts 图表</Menu.Item>
