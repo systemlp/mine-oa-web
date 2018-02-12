@@ -306,7 +306,7 @@ class Menu extends Component {
     for (let i = 0; i < menuList.length; i++) {
       const temp = menuList[i];
       if (temp.id === menu.parentId) {
-        if (expandedKeys.indexOf(temp.url) < 0) {
+        if (expandedKeys.indexOf(temp.id) < 0) {
           expandedKeys.push(`${temp.id}`);
         }
         if (temp.parentId) {

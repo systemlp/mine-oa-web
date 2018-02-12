@@ -1,11 +1,13 @@
 import 'antd/dist/antd.css';
 import React, {Component} from 'react';
-import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal} from 'antd';
+import {Table, Row, Col, message, Button, Input, Select, Popconfirm, Modal, Icon, Tree} from 'antd';
 import {fetchUtil} from '../../../utils/fetchUtil';
 import {EditableInput} from '../../../utils/components/editableInput';
 import {defaultPagination} from '../../../constants/oaConstants';
 
-const Option = Select.Option;
+const {Option} = Select;
+const {TreeNode} = Tree;
+const {Search} = Input;
 
 class Role extends Component {
     state = {
@@ -18,7 +20,13 @@ class Role extends Component {
         },
         editRoleMap: new Map(),
         modal: {},
-        insertRole: {}
+        insertRole: {},
+        allMenuList: [],
+        menuList: [],
+        checkedKeys: new Set(),
+        expandedKeys: [],
+        autoExpandParent: true,
+        searchValue: ''
     };
     columns = [
         {
@@ -110,6 +118,8 @@ class Role extends Component {
     ];
     componentWillMount() {
       this.fetchData();
+      this.fetchMenuTree();
+      this.fetchAllMenu();
     }
     fetchData() {
       this.setState({ loading: true });
@@ -128,6 +138,49 @@ class Role extends Component {
               data: data.list,
               pagination
             });
+          } else {
+            message.error(msg);
+          }
+        }
+      });
+    }
+    fetchMenuTree() {
+      fetchUtil({
+        url: '/menu/findTree',
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data: menuList} = result;
+            this.setState({menuList});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
+    }
+    fetchAllMenu() {
+      fetchUtil({
+        url: '/menu/findAll',
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data: allMenuList} = result;
+            this.setState({allMenuList});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
+    }
+    fetchRoleMenu(id) {
+      fetchUtil({
+        url: `/role/${id}/findMenu`,
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data} = result;
+            const {menuIdSet, parentIdSet: expandedKeys} = data;
+            this.setState({checkedKeys:new Set(menuIdSet), expandedKeys});
           } else {
             message.error(msg);
           }
@@ -227,6 +280,116 @@ class Role extends Component {
       editRoleMap.delete(curData.id);
       this.setState({data, editRoleMap});
     }
+    loop(data) {
+      const {searchValue} = this.state;
+      return data.map( item => {
+        let {id, title, icon, children} = item;
+        const index = title.indexOf(searchValue);
+        const beforeStr = title.substr(0, index);
+        const afterStr = title.substr(index + searchValue.length);
+        title = index > -1 ? (
+          <span>
+            {beforeStr}
+            <span style={{ color: '#f50' }}>{searchValue}</span>
+            {afterStr}
+          </span>
+        ) : <span>{title}</span>;
+        if(icon) {
+          title = (<span>
+            <Icon type={item.icon} />
+            {title}
+          </span>);
+        }
+        if(children) {
+          return (
+            <TreeNode key={`${id}`} title={title}>
+              {this.loop(children)}
+            </TreeNode>
+          );
+        }
+        return <TreeNode key={`${id}`} title={title} />;
+      });
+    }
+    getParentKey(menu, expandedKeys) {
+      if (!menu.parentId) {
+        return;
+      }
+      const {allMenuList} = this.state;
+      for (let i = 0; i < allMenuList.length; i++) {
+        const temp = allMenuList[i];
+        if (temp.id === menu.parentId) {
+          if (isNaN(expandedKeys.length)) {
+            expandedKeys.add(`${temp.id}`);
+          } else if (expandedKeys.indexOf(temp.id) < 0) {
+            expandedKeys.push(`${temp.id}`);
+          }
+          if (temp.parentId) {
+            this.getParentKey(temp, expandedKeys);
+          }
+        }
+      }
+    }
+    getChildKey(menu, allMenuList, checkedKeys, checked) {
+      allMenuList.forEach(item => {
+        if (item.parentId === menu.id) {
+          if (checked) {
+            checkedKeys.add(`${item.id}`);
+          } else {
+            checkedKeys.delete(`${item.id}`);
+          }
+          this.getChildKey(item, allMenuList, checkedKeys, checked);
+        }
+      })
+    }
+    checkMenu(checkedKeys, e) {
+      const {checked} = e;
+      const {eventKey} = e.node.props;
+      const {allMenuList} = this.state;
+      const menu = allMenuList.find(item => item && `${item.id}` === eventKey);
+      this.getParentKey(menu, checkedKeys);
+      this.getChildKey(menu, allMenuList, checkedKeys, checked);
+      this.setState({checkedKeys});
+    }
+    renderTree() {
+      const {menuList, allMenuList, checkedKeys, expandedKeys, autoExpandParent} = this.state;
+      return (
+        <div className="menuManage">
+          <div className="treeBox" style={{height: 300}}>
+            <Search style={{ width: 260 }}
+            placeholder="搜索"
+            onChange={e => {
+              const searchValue = e.target.value.trim();
+              this.setState({searchValue});
+              if (!searchValue || !allMenuList || allMenuList.length < 1) {
+                return;
+              }
+              const menus = allMenuList.filter(item => {
+                return item && item.title.indexOf(searchValue) > -1
+              });
+              const expandedKeys = [];
+              menus.map(menu => this.getParentKey(menu,expandedKeys));
+              this.setState({expandedKeys, autoExpandParent: true});
+            }}/>
+            <Tree
+            checkable
+            checkStrictly
+            checkedKeys={[...checkedKeys]}
+            expandedKeys={expandedKeys}
+            autoExpandParent={autoExpandParent}
+            onCheck={(keys, e) => this.checkMenu(new Set(keys), e)}
+            onExpand={keys => {
+              this.setState({
+                expandedKeys: keys,
+                autoExpandParent: false,
+              });
+            }}
+            >
+            {this.loop(menuList)}
+            </Tree>
+          </div>
+        </div>
+      );
+    }
     renderModal() {
       const {modal} = this.state;
       modal.onCancel = () => {
@@ -251,6 +414,9 @@ class Role extends Component {
                 </Col>
             </Row>
           </div>;
+          break;
+        case 'menuAuthorize':
+          modal.content = this.renderTree();
           break;
         default:
           modal.content = null;
@@ -299,12 +465,31 @@ class Role extends Component {
       this.setState({modal});
     }
     renderMenuModel(id) {
+      this.fetchRoleMenu(id);
       const modal =  {
         visible: true,
         title: '菜单授权',
         type: 'menuAuthorize',
         onOk: () => {
-          
+          fetchUtil({
+            url: `/role/${id}/menuAuthorize`,
+            method: 'POST',
+            body: [...this.state.checkedKeys],
+            callBack: (result) => {
+              const {code, msg} = result;
+              switch (code) {
+                case 200:
+                  message.success(msg);
+                  this.setState({modal:{}});
+                  break;
+                case 403:
+                  message.warn(msg);
+                  break;
+                default:
+                  message.error(result.msg);
+              }
+            }
+          });
         }
       };
       this.setState({modal});
