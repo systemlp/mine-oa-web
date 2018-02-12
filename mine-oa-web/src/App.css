@@ -143,6 +143,7 @@
   border-radius: 5px;
   border: 1px dashed #108ee9;
   padding: 10px;
+  overflow-y: auto;
 }
 
 .menuManage .treeBox {
