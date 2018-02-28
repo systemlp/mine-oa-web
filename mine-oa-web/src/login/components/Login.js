@@ -107,7 +107,7 @@ class Login extends Component {
                     </Row>
                     <Row>
                         <Col>
-                            <Input size="large" type="password" value={this.state.password} onChange={(e) => {
+                            <Input onPressEnter={() => this.handledLogin()} size="large" type="password" value={this.state.password} onChange={(e) => {
                                 const value = e.target.value.trim();
                                 this.setState({password: value});
                                 if (value && this.state.errMsg != null && (this.state.errMsg.title === 'passwordEmpty' || this.state.errMsg.title === 'error')) {

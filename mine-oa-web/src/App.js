@@ -21,7 +21,8 @@ class App extends Component {
         collapsed: false,
         modal: {},
         updatePwd: {},
-        oldPwd:''
+        oldPwd:'',
+        menuList: []
       }
       menu = (<Menu className="user-menu" onClick={(item, key, keyPath) => {
         switch (item.key) {
@@ -66,6 +67,21 @@ class App extends Component {
       } else {
         this.setState({selectedKeys:[]});
       }
+      this.fetchMenu();
+    }
+    fetchMenu() {
+      fetchUtil({
+        url: '/menu/findByToken',
+        callBack: result => {
+          const {code, msg} = result;
+          if (code === 200) {
+            const {data: menuList} = result;
+            this.setState({menuList});
+          } else {
+            message.error(msg);
+          }
+        }
+      });
     }
     componentDidMount() {}
     renderModal() {
@@ -165,6 +181,39 @@ class App extends Component {
       };
       this.setState({modal});
     }
+    renderMenu() {
+      const {menuList} = this.state;
+      return (
+        <Menu
+          ref="mainMenu"
+          selectedKeys={this.state.selectedKeys}
+          defaultOpenKeys={this.state.openKeys}
+          theme="dark"
+          mode="inline"
+          collapsed={this.state.collapsed}
+          className="layout-menu"
+          onSelect={(item, key, selectedKeys) => {
+            this.setState({
+              selectedKeys: [item.key]
+            });
+            browserHistory.push(item.key);
+        }}>
+          {
+            menuList.map(item => {
+              return <SubMenu key={item.url} title={<span>{item.icon?<Icon type={item.icon} />:null}<span>{item.title}</span></span>}>
+                {
+                  item.children ?
+                    item.children.map(child => {
+                      return <Menu.Item key={child.url}>{child.title}</Menu.Item>
+                    })
+                    : null
+                }
+              </SubMenu>
+            })
+          }
+        </Menu>
+      );
+    }
     render() {
       let {user} = this.props;
       if(!user || !user.id){
@@ -204,7 +253,8 @@ class App extends Component {
                     collapsed: !this.state.collapsed
                 })
               }}/>
-              <Menu
+              {this.renderMenu()}
+              {/* <Menu
                 ref="mainMenu"
                 selectedKeys={this.state.selectedKeys}
                 defaultOpenKeys={this.state.openKeys}
@@ -224,6 +274,7 @@ class App extends Component {
                     <Menu.Item key="/org/employee">员工管理</Menu.Item>
                     <Menu.Item key="/org/menu">菜单管理</Menu.Item>
                     <Menu.Item key="/org/role">角色管理</Menu.Item>
+                    <Menu.Item key="/org/userRole">用户角色管理</Menu.Item>
                   </SubMenu>
                   <SubMenu key="echarts" title={<span><Icon type="github"/><span>Charts</span></span>}>
                     <Menu.Item key="/echarts">ECharts 图表</Menu.Item>
@@ -242,7 +293,7 @@ class App extends Component {
                   <SubMenu title={<span><Icon type="aliwangwang"/><span>Data Entry</span></span>}>
                     <Menu.Item key="/cascader">Cascader 级联选择</Menu.Item>
                   </SubMenu>
-              </Menu>
+              </Menu> */}
             </Sider>
             <Content>
               {/* <Breadcrumb style={{margin: 10}} separator=">>">
