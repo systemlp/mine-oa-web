@@ -22,7 +22,8 @@ class App extends Component {
         modal: {},
         updatePwd: {},
         oldPwd:'',
-        menuList: []
+        menuList: [],
+        hasMenu: false
       }
       menu = (<Menu className="user-menu" onClick={(item, key, keyPath) => {
         switch (item.key) {
@@ -58,16 +59,34 @@ class App extends Component {
         browserHistory.push('/login');
         return;
       }
-      if(window.location.pathname !== '/') {
+      if(window.location.pathname !== '/' && window.location.pathname !== '/userData' ) {
         const selectedKeys = [window.location.pathname];
         const subMenuKey = selectedKeys[0];
         const length = subMenuKey.indexOf('/', 1);
         const openKeys = [subMenuKey.substring(1, length === -1?subMenuKey.length:length)];
         this.setState({selectedKeys, openKeys});
+        this.hasMenu();
       } else {
-        this.setState({selectedKeys:[]});
+        this.setState({selectedKeys:[], hasMenu: true});
       }
       this.fetchMenu();
+    }
+    hasMenu() {
+      fetchUtil({
+        url: '/menu/hasMenu',
+        method: 'POST',
+        body: { url: window.location.pathname},
+        callBack: result => {
+          const {code, msg, data} = result;
+          switch (code) {
+            case 200:
+              this.setState({hasMenu: data>0});
+              break;
+            default:
+              message.error(msg);
+          }
+        }
+      });
     }
     fetchMenu() {
       fetchUtil({
@@ -194,7 +213,8 @@ class App extends Component {
           className="layout-menu"
           onSelect={(item, key, selectedKeys) => {
             this.setState({
-              selectedKeys: [item.key]
+              selectedKeys: [item.key],
+              hasMenu: true
             });
             browserHistory.push(item.key);
         }}>
@@ -220,6 +240,7 @@ class App extends Component {
         user = JSON.parse(sessionStorage.getItem('user'));
       }
       user = user || {};
+      const {hasMenu} = this.state;
       return (
         <Layout>
           <Header className="layout-header">
@@ -304,7 +325,14 @@ class App extends Component {
                       {this.state.selectedKeys.length<1?'':this.state.selectedKeys[0].substring(1)}
                   </Breadcrumb.Item>
               </Breadcrumb> */}
-              <div id="layout-content" className="layout-content">{this.props.children}</div>
+              <div id="layout-content" className="layout-content">
+                {
+                  hasMenu ?
+                  this.props.children
+                  :
+                  <div>无权限</div>
+                }
+              </div>
             </Content>
           </Layout>
           <Footer>footer</Footer>

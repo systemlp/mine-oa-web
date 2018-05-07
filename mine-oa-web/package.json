@@ -6,6 +6,7 @@
     "antd": "^2.12.3",
     "echarts": "^3.6.2",
     "echarts-for-react": "^1.4.4",
+    "emoji-mart": "^2.5.0",
     "moment": "^2.18.1",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
